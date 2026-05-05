@@ -162,7 +162,7 @@ The authoritative verbatim text lives in the parent Lava `CLAUDE.md` under "Seve
 
 ## Clause 6.L — Anti-Bluff Functional Reality Mandate (Operator's Standing Order)
 
-Inherited verbatim from parent Lava `/CLAUDE.md` §6.L. The operator has invoked this mandate **NINE TIMES** across two working days. The 9th invocation (2026-05-05 late evening): "Make sure that all existing tests and Challenges do work in anti-bluff manner — they MUST confirm that all tested codebase really works as expected!"
+Inherited verbatim from parent Lava `/CLAUDE.md` §6.L. The operator has invoked this mandate **TEN TIMES** across two working days. The 10th invocation (2026-05-05, after Phase 7 readiness was reported, when the operator commissioned the full rebuild-and-test-everything cycle for tag Lava-Android-1.2.3): "Rebuild Go API and client app(s), put new builds into releases dir (with properly updated version codes) and execute all existing tests and Challenges! Any issue that pops up MUST BE properly addressed by addressing the root causes (fixing them) and covering everything with validation and verification tests and Challenges!"
 
 Every test, every Challenge Test, every CI gate added to or maintained in this submodule MUST do exactly one job: confirm the feature it claims to cover actually works for an end user, end-to-end, on the gating matrix. CI green is necessary, NEVER sufficient. Tests must guarantee the product works — anything else is theatre.
 
