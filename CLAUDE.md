@@ -265,3 +265,8 @@ The authoritative verbatim text lives in the parent Lava `CLAUDE.md` "Seventh La
 ## §6.R — No-Hardcoding Mandate (inherited 2026-05-06, per §6.F)
 
 See root `/CLAUDE.md` §6.R. No connection address, port, header field name, credential, key, salt, secret, schedule, algorithm parameter, or domain literal in tracked source code. Every such value MUST come from `.env` (gitignored), generated config, runtime env var, or mounted file. Submodule MAY add stricter rules but MUST NOT relax.
+
+## §6.S — Continuation Document Maintenance Mandate (inherited 2026-05-06, per §6.F)
+
+See root `/CLAUDE.md` §6.S. The file `docs/CONTINUATION.md` (in the parent Lava repo) is the single-file source-of-truth handoff document for resuming work across any CLI session. Every commit that changes phase status, lands a new spec/plan, bumps a submodule pin, ships a release artifact, discovers/resolves a known issue, or implements an operator scope directive MUST update `docs/CONTINUATION.md` in the SAME COMMIT. The §0 "Last updated" line MUST track HEAD. Submodule MAY add stricter rules (e.g., maintain its own CONTINUATION) but MUST NOT relax this clause.
+
