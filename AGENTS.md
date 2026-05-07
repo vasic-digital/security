@@ -323,3 +323,23 @@ Inheritance is recursive: this clause applies to every dependency, every test, e
 ## Clause 6.Q (added 2026-05-05, inherited per 6.F)
 
 - **Clause 6.Q — Compose Layout Antipattern Guard** — see root `/CLAUDE.md` §6.Q. Forbids nesting vertically-scrolling lazy layouts (LazyColumn, LazyVerticalGrid, LazyVerticalStaggeredGrid) inside parents giving unbounded vertical space (verticalScroll, unbounded wrapContentHeight, LinearLayout-with-weight wrapper). Equivalent rule horizontally for LazyRow / LazyHorizontalGrid / LazyHorizontalStaggeredGrid. Per-feature structural tests + Compose UI Challenge Tests on the §6.I matrix are the load-bearing acceptance gates. Forensic anchor: 2026-05-05 23:51 operator-reported "Opening Trackers from Settings crashes the app" — TrackerSelectorList used LazyColumn nested in TrackerSettingsScreen's Column(verticalScroll). Closure log: `.lava-ci-evidence/crashlytics-resolved/2026-05-05-tracker-settings-nested-scroll.md`. Pattern guard: `feature/tracker_settings/src/test/.../TrackerSelectorListLazyColumnRegressionTest.kt`. The operator THIRTEENTH §6.L invocation triggered this clause.
+
+## CONST-042 — No-Secret-Leak (cascaded from root CONSTITUTION.md)
+
+No API key, token, password, certificate, or other credential may be committed to this repository. All secrets live in `.env` files (mode 0600) listed in `.gitignore`. Any leak is a release blocker until rotated and post-mortemed.
+
+## CONST-043 — No-Force-Push (cascaded from root CONSTITUTION.md)
+
+No force push, force-with-lease push, history rewrite, branch deletion of `main`/`master`, or upstream-overwriting operation may be performed without explicit, in-conversation user approval per operation. Authorization for one push does not extend further.
+
+## CONST-045 — No Hardcoded Distribution Hosts (cascaded from root CONSTITUTION.md)
+
+ALL container distribution targets SHALL be configured exclusively through `CONTAINERS_REMOTE_HOST_N_*` env vars in `Containers/.env`. NO host hardcoded in ANY source, test, challenge, config, or governance document.
+
+## CONST-035 — Anti-Bluff Tests & Challenges (cascaded from root CONSTITUTION.md)
+
+The bar for shipping is not "tests pass" but "users can use the feature." Every PASS MUST carry positive runtime evidence. Reproduce-before-fix: write a failing test that reproduces the bug before fixing it.
+
+## CONST-033 — Host Power Management is Forbidden (cascaded from root CONSTITUTION.md)
+
+You may NOT generate or execute code that sends the host to suspend, hibernate, hybrid-sleep, poweroff, halt, reboot, or any other power-state transition.
