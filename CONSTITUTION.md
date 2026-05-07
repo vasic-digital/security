@@ -18,6 +18,14 @@ See README.md.
 4. **Conventional Commits** for all commits.
 5. **SSH-only for git operations** (`git@…`); HTTPS prohibited.
 
+## Article XI — Anti-Bluff and Quality Mandate
+
+### §11.9 — Anti-Bluff Forensic Anchor (CONST-035)
+
+> Verbatim user mandate: *"We had been in position that all tests do execute with success and all Challenges as well, but in reality the most of the features does not work and can't be used! This MUST NOT be the case and execution of tests and Challenges MUST guarantee the quality, the completion and full usability by end users of the product!"*
+>
+> Operative rule: **The bar for shipping is not "tests pass" but "users can use the feature."** Every PASS in this codebase MUST carry positive runtime evidence captured during execution. Metadata-only / configuration-only / absence-of-error / grep-based PASS without runtime evidence are critical defects regardless of how green the summary line looks. No false-success results are tolerable.
+
 ## Numbered Rules
 
 <!-- Rules are numbered CONST-NNN. New rules append. Removed rules
