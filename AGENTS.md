@@ -343,3 +343,18 @@ The bar for shipping is not "tests pass" but "users can use the feature." Every 
 ## CONST-033 — Host Power Management is Forbidden (cascaded from root CONSTITUTION.md)
 
 You may NOT generate or execute code that sends the host to suspend, hibernate, hybrid-sleep, poweroff, halt, reboot, or any other power-state transition.
+
+## Anti-Bluff and Quality Mandate
+
+### Article XI §11.9 — Anti-Bluff Forensic Anchor
+
+> Verbatim user mandate: "We had been in position that all tests do execute
+> with success and all Challenges as well, but in reality the most of the
+> features does not work and can't be used! This MUST NOT be the case and
+> execution of tests and Challenges MUST guarantee the quality, the
+> completion and full usability by end users of the product!"
+
+**Operative rule:** Every PASS MUST carry positive runtime evidence.
+No false-success results are tolerable.
+
+**Bluff Taxonomy:** wrapper, contract, structural, comment, skip.
