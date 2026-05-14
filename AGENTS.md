@@ -365,4 +365,28 @@ See root `/CLAUDE.md` §6.T. All four sub-points (Reproduction-Before-Fix, Resou
 ## §6.X — Container-Submodule Emulator Wiring Mandate (inherited 2026-05-13, per §6.F)
 
 Inherited verbatim from parent Lava `/CLAUDE.md` §6.X (added 2026-05-13 in response to the operator's twenty-first §6.L invocation: "when we rely / depend on emulator(s) needed for the testing of the System, make sure we boot up Container running Android emulator in it using ours Containers Submodule. It is supported and it works, it just need proper connecting into the flows."). Every Android emulator instance MUST execute INSIDE a podman/docker container managed by `Submodules/Containers/`. Host-direct emulator launches are permitted for workstation iteration only; the constitutional gate run (release tagging, real-device verification) MUST go through the container-bound path. `pkg/runtime/` brings the container up; `pkg/emulator/` orchestrates the AVD lifecycle inside it. §6.X-debt tracks the wiring implementation owed to the Containers submodule. This submodule MAY add stricter rules but MUST NOT relax.
+<!-- BEGIN submodule-decoupling-and-reusability (parent-mirror) -->
 
+## Submodule Decoupling & Reusability — MANDATORY for ALL AI Agents
+
+**Applies to ALL CLI agents (Codex, Cursor, Gemini CLI, Copilot CLI,
+Claude Code, etc.) working in this repository.**
+
+This repository is **shared infrastructure** consumed by multiple
+independent consumer projects. The value of this repository depends
+on staying fully decoupled and reusable.
+
+**Hard rules:**
+
+- DO NOT hardcode any specific consumer project's name, platform
+  list, paths, version strings, or release-naming conventions.
+- DO NOT import / reference any consumer-project namespace.
+- DO NOT embed consumer-project-specific governance, branding, or
+  rule numbering in `CONSTITUTION.md` / `CLAUDE.md` / `AGENTS.md`.
+- DO assume N ≥ 2 unrelated consumer projects exist.
+
+Cross-project rules MUST be phrased generically ("every consuming
+project's full platform matrix"), never with a specific consumer's
+matrix hardcoded.
+
+<!-- END submodule-decoupling-and-reusability (parent-mirror) -->
