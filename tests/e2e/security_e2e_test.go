@@ -8,7 +8,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"digital.vasic.security/pkg/content"
 	"digital.vasic.security/pkg/guardrails"
@@ -280,6 +279,11 @@ type testScanner struct {
 func (s *testScanner) Scan(
 	_ context.Context, _ string,
 ) ([]scanner.Finding, error) {
-	time.Sleep(5 * time.Millisecond) // simulate scan work
+	// Pre-fixture findings table-driven — no simulated delay needed.
+	// Previous `time.Sleep(5ms) // simulate scan work` was a
+	// CONST-050(A) violation: this is e2e, not unit, and a sleep
+	// pretending to be scan work has no representational value.
+	// Removed entirely; the table of pre-built findings is the
+	// honest expression of what this test exercises.
 	return s.findings, nil
 }
