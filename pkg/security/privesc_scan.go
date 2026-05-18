@@ -1,10 +1,19 @@
 // Package security provides host and container security scanning utilities.
+//
+// CONST-046 (No-Hardcoded Content): every user-visible Description and
+// Details field is sourced from the package-level translator. The default
+// NoopTranslator returns each message ID verbatim, preserving deterministic
+// behaviour for existing tests; consumer projects inject locale-aware
+// implementations via i18n.SetPkgTranslator.
 package security
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
+
+	"digital.vasic.security/pkg/i18n"
 )
 
 // PrivEscCheck holds the result of a privilege escalation scan.
@@ -13,6 +22,28 @@ type PrivEscCheck struct {
 	Description string
 	Passed      bool
 	Details     string
+}
+
+// tr translates the messageID via the package-level translator.
+// On error it returns the messageID verbatim (CONST-035 anti-bluff:
+// no silent string substitution).
+func tr(id string) string {
+	s, err := i18n.Pkg().T(context.Background(), id, nil)
+	if err != nil || s == "" {
+		return id
+	}
+	return s
+}
+
+// trf translates the messageID and substitutes a single positional
+// integer (the count). NoopTranslator returns the ID verbatim, so we
+// detect that path and apply Sprintf locally for the default case.
+func trf(id, fallbackFmt string, n int) string {
+	s, err := i18n.Pkg().T(context.Background(), id, map[string]any{"count": n})
+	if err != nil || s == "" || s == id {
+		return fmt.Sprintf(fallbackFmt, n)
+	}
+	return s
 }
 
 // ScanPrivilegeEscalation checks common container and host privilege escalation vectors.
@@ -34,9 +65,9 @@ func CheckPrivilegedContainer() PrivEscCheck {
 	if err != nil {
 		return PrivEscCheck{
 			Name:        "PrivilegedContainer",
-			Description: "Check if running in a privileged container",
+			Description: tr(i18n.MsgPrivescPrivContainerDesc),
 			Passed:      true,
-			Details:     "Cannot read /proc/1/status; assuming unprivileged",
+			Details:     tr(i18n.MsgPrivescPrivContainerUnknownProcStatus),
 		}
 	}
 
@@ -47,9 +78,9 @@ func CheckPrivilegedContainer() PrivEscCheck {
 			if len(fields) >= 2 && fields[1] == "0000003fffffffff" {
 				return PrivEscCheck{
 					Name:        "PrivilegedContainer",
-					Description: "Check if running in a privileged container",
+					Description: tr(i18n.MsgPrivescPrivContainerDesc),
 					Passed:      false,
-					Details:     "Full capabilities detected (likely privileged container)",
+					Details:     tr(i18n.MsgPrivescPrivContainerFullCaps),
 				}
 			}
 		}
@@ -57,9 +88,9 @@ func CheckPrivilegedContainer() PrivEscCheck {
 
 	return PrivEscCheck{
 		Name:        "PrivilegedContainer",
-		Description: "Check if running in a privileged container",
+		Description: tr(i18n.MsgPrivescPrivContainerDesc),
 		Passed:      true,
-		Details:     "Not running with full capabilities",
+		Details:     tr(i18n.MsgPrivescPrivContainerOK),
 	}
 }
 
@@ -71,17 +102,17 @@ func CheckWritableRootFS() PrivEscCheck {
 		os.Remove(f.Name())
 		return PrivEscCheck{
 			Name:        "WritableRootFS",
-			Description: "Check if root filesystem is writable",
+			Description: tr(i18n.MsgPrivescWritableRootDesc),
 			Passed:      false,
-			Details:     "Root filesystem is writable",
+			Details:     tr(i18n.MsgPrivescWritableRootFail),
 		}
 	}
 
 	return PrivEscCheck{
 		Name:        "WritableRootFS",
-		Description: "Check if root filesystem is writable",
+		Description: tr(i18n.MsgPrivescWritableRootDesc),
 		Passed:      true,
-		Details:     "Root filesystem is read-only",
+		Details:     tr(i18n.MsgPrivescWritableRootOK),
 	}
 }
 
@@ -91,9 +122,9 @@ func CheckDangerousCapabilities() PrivEscCheck {
 	if err != nil {
 		return PrivEscCheck{
 			Name:        "DangerousCapabilities",
-			Description: "Check for dangerous capabilities (CAP_SYS_ADMIN)",
+			Description: tr(i18n.MsgPrivescDangerousCapsDesc),
 			Passed:      true,
-			Details:     "Cannot read process status",
+			Details:     tr(i18n.MsgPrivescDangerousCapsUnknownProcStatus),
 		}
 	}
 
@@ -107,9 +138,9 @@ func CheckDangerousCapabilities() PrivEscCheck {
 				if capEff == "0000003fffffffff" {
 					return PrivEscCheck{
 						Name:        "DangerousCapabilities",
-						Description: "Check for dangerous capabilities (CAP_SYS_ADMIN)",
+						Description: tr(i18n.MsgPrivescDangerousCapsDesc),
 						Passed:      false,
-						Details:     "Full capability set detected",
+						Details:     tr(i18n.MsgPrivescDangerousCapsFail),
 					}
 				}
 			}
@@ -118,9 +149,9 @@ func CheckDangerousCapabilities() PrivEscCheck {
 
 	return PrivEscCheck{
 		Name:        "DangerousCapabilities",
-		Description: "Check for dangerous capabilities (CAP_SYS_ADMIN)",
+		Description: tr(i18n.MsgPrivescDangerousCapsDesc),
 		Passed:      true,
-		Details:     "No dangerous capabilities detected",
+		Details:     tr(i18n.MsgPrivescDangerousCapsOK),
 	}
 }
 
@@ -132,26 +163,26 @@ func CheckHostNamespace() PrivEscCheck {
 	if err1 != nil || err2 != nil {
 		return PrivEscCheck{
 			Name:        "HostNamespace",
-			Description: "Check if sharing host namespaces",
+			Description: tr(i18n.MsgPrivescHostNamespaceDesc),
 			Passed:      true,
-			Details:     "Cannot read cgroup info",
+			Details:     tr(i18n.MsgPrivescHostNamespaceUnknownCgroup),
 		}
 	}
 
 	if strings.TrimSpace(string(selfCgroup)) == strings.TrimSpace(string(rootCgroup)) {
 		return PrivEscCheck{
 			Name:        "HostNamespace",
-			Description: "Check if sharing host namespaces",
+			Description: tr(i18n.MsgPrivescHostNamespaceDesc),
 			Passed:      false,
-			Details:     "Same cgroup as init process (likely sharing host namespace)",
+			Details:     tr(i18n.MsgPrivescHostNamespaceFail),
 		}
 	}
 
 	return PrivEscCheck{
 		Name:        "HostNamespace",
-		Description: "Check if sharing host namespaces",
+		Description: tr(i18n.MsgPrivescHostNamespaceDesc),
 		Passed:      true,
-		Details:     "Isolated cgroup namespace detected",
+		Details:     tr(i18n.MsgPrivescHostNamespaceOK),
 	}
 }
 
@@ -179,16 +210,16 @@ func CheckSUIDBinaries() PrivEscCheck {
 	if len(found) > 0 {
 		return PrivEscCheck{
 			Name:        "SUIDBinaries",
-			Description: "Check for unexpected SUID binaries",
+			Description: tr(i18n.MsgPrivescSUIDDesc),
 			Passed:      false,
-			Details:     fmt.Sprintf("Found %d SUID binaries", len(found)),
+			Details:     trf(i18n.MsgPrivescSUIDFail, "Found %d SUID binaries", len(found)),
 		}
 	}
 
 	return PrivEscCheck{
 		Name:        "SUIDBinaries",
-		Description: "Check for unexpected SUID binaries",
+		Description: tr(i18n.MsgPrivescSUIDDesc),
 		Passed:      true,
-		Details:     "No unexpected SUID binaries found",
+		Details:     tr(i18n.MsgPrivescSUIDOK),
 	}
 }

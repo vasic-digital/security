@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"digital.vasic.security/pkg/i18n"
 )
 
 // Severity represents the severity level of a finding.
@@ -91,10 +93,20 @@ func (r *Report) FilterBySeverity(minSeverity Severity) []Finding {
 }
 
 // Summary returns a human-readable summary of the report.
+//
+// CONST-046: the format template is sourced from the package-level
+// translator (NoopTranslator returns the message ID verbatim).
+// Consumer projects inject locale-aware templates via i18n.SetPkgTranslator.
 func (r *Report) Summary() string {
+	tmpl, _ := i18n.Pkg().T(context.Background(), i18n.MsgScannerReportSummary, nil)
+	if tmpl == i18n.MsgScannerReportSummary {
+		// NoopTranslator path: provide the canonical English template so
+		// existing consumers (and tests) see deterministic output.
+		tmpl = "Scan Report: %d findings " +
+			"(Critical: %d, High: %d, Medium: %d, Low: %d, Info: %d)"
+	}
 	return fmt.Sprintf(
-		"Scan Report: %d findings "+
-			"(Critical: %d, High: %d, Medium: %d, Low: %d, Info: %d)",
+		tmpl,
 		r.TotalCount,
 		r.BySeverity[SeverityCritical],
 		r.BySeverity[SeverityHigh],
