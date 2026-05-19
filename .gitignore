@@ -36,3 +36,21 @@ coverage.out
 .env.*.local
 
 reports/demos/
+
+# CONST-053 — round-300 additions
+*.log
+*.tmp
+*.orig
+*.rej
+*.pem
+*.key
+*.crt
+htmlcov/
+.history/
+.pytest_cache/
+__pycache__/
+node_modules/
+secrets/
+
+# round-300 Challenge scratch dir (security_describe_challenge.sh)
+.security_describe_scratch/

@@ -1,8 +1,52 @@
 # Security
 
+**Revision:** 2 — round-300 deep-doc + Challenge enrichment (2026-05-19)
+**Last modified:** 2026-05-19
+**Maintainer:** vasic-digital/Security
+**Documentation Map:**
+- `README.md` (this file) — module overview, anti-bluff guarantees, usage
+- `docs/test-coverage.md` — symbol → test ledger (round-300 added)
+- `docs/API_REFERENCE.md` — exported-symbol API reference
+- `docs/ARCHITECTURE.md` — layered design notes
+- `docs/USER_GUIDE.md` — consumer integration walkthrough
+- `docs/HOST_POWER_MANAGEMENT.md` — CONST-033 host-power posture
+- `docs/CONTRIBUTING.md` — contribution workflow
+- `docs/CHANGELOG.md` — version history
+- `CONSTITUTION.md` / `CLAUDE.md` / `AGENTS.md` — inherited governance
+- `challenges/scripts/*.sh` — anti-bluff Challenge runners (incl. round-300 describe + mutation)
+
 Generic, reusable security module for Go applications. Provides content guardrails, PII detection and redaction, content filtering with composable chains, policy enforcement, vulnerability scanning, HTTP security headers middleware, and AES-256-GCM encrypted file storage.
 
 **Module**: `digital.vasic.security` (Go 1.24+)
+
+## Anti-Bluff Guarantees (CONST-035 / §11.4 / Article XI §11.9)
+
+> Verbatim 2026-05-19 operator mandate (preserved per CONST-049 §11.4.17): "all existing tests and Challenges do work in anti-bluff manner - they MUST confirm that all tested codebase really works as expected! We had been in position that all tests do execute with success and all Challenges as well, but in reality the most of the features does not work and can't be used! This MUST NOT be the case and execution of tests and Challenges MUST guarantee the quality, the completition and full usability by end users of the product!"
+
+Every PASS emitted by this submodule's tests or Challenges MUST carry positive runtime evidence — never a metadata-only / structural-only / absence-of-error PASS. Concretely, this module guarantees:
+
+1. **Real encryption round-trip** (`pkg/securestorage`): AES-256-GCM seal+open exercised end-to-end against the host filesystem; key derivation uses Argon2id with real salts; `IsSecure()` flips a known plaintext through the pipeline and asserts byte-identity on read-back. A regression that returns the input verbatim without sealing produces a captured FAIL — not a green test.
+2. **Real PII matching** (`pkg/pii`): every redaction strategy exercised against fixtures containing live-shaped (synthetic but format-valid) email / phone / SSN / credit-card / IPv4 values; confidence scoring asserted from real regex hits, not stubbed return values.
+3. **Real policy decisions** (`pkg/policy`): rule chains evaluated against multi-condition request payloads; `Decide()` traversal records which rule produced the verdict so a bluff "always-allow" implementation is caught by the audit-trail assertion.
+4. **Real HTTP header middleware** (`pkg/headers`): `httptest.NewRecorder()` + real `http.Handler` chain — every CSP / HSTS / X-Frame-Options header asserted by name AND value on the recorded response, not by middleware-was-called counters.
+5. **Real privilege-escalation scanner** (`pkg/security/privesc_scan`): probes `/proc/self/status`, capability bitmasks, namespace cgroup hierarchy on the real host where executed. Skip-with-marker only on platforms lacking `/proc` — never a silent PASS.
+
+### Defensive-use boundary (mirrors RedTeam round-281)
+
+This module is **defensive tooling**. Every package's purpose is to **detect, redact, deny, harden, or audit** — never to attack, exfiltrate, escalate, or evade. Concretely:
+
+- `pkg/pii` exists to **redact** PII before logging/transmission — not to harvest it. Production callers MUST consume the `Redactor`, never iterate `Detector.Detect()` results into a payload destined for an untrusted sink.
+- `pkg/security/privesc_scan` exists to **detect** privilege-escalation misconfigurations on the LOCAL host running the scan — never to enumerate remote hosts an operator does not own.
+- `pkg/ssrf` exists to **deny** Server-Side Request Forgery against the caller's outbound HTTP client — never to construct SSRF payloads.
+- `pkg/guardrails` / `pkg/content` exist to **reject** unwanted inbound content — never to construct adversarial inputs.
+- `pkg/headers` exists to **harden** outbound responses — never to strip security headers.
+- `pkg/securestorage` exists to **encrypt** credentials at rest — never to recover keys without the master secret.
+
+Any change that flips a package's polarity (detection → attack, denial → bypass, redaction → exfiltration) is a defensive-use-boundary violation regardless of test status. The round-300 Challenge enrichment explicitly asserts polarity on the public API surface.
+
+### Paired-mutation contract (Article §1.1)
+
+Every Challenge under `challenges/scripts/` ships with a documented mutation that, when applied to its production code path, MUST flip the Challenge from exit-0 (clean) to exit non-zero (planted failure detected). The round-300 `security_describe_challenge.sh` script encodes the canonical mutation surface; CI invokes both modes and rejects the run if normal mode passes BUT mutation mode also passes (which would prove the Challenge is structural, not functional).
 
 ## Architecture
 
