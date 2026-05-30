@@ -33,6 +33,16 @@ feature is broken is a bluff test and is forbidden. CI green is necessary,
 never sufficient. See this module's CLAUDE.md, AGENTS.md, and CONSTITUTION.md
 for the full Sixth/Seventh Law and section 6.J / 6.L mandate.
 
+
+## Anti-bluff-manner clause (verbatim operator mandate — HRD-158 covenant cascade)
+
+**Forensic anchor — verbatim operator mandate:**
+
+> "IMPORTANT: Make sure that all existing tests and Challenges do work in anti-bluff manner — they MUST confirm that all tested codebase really works as expected! execution of tests and Challenges MUST guarantee the quality, the completition and full usability by end users of the product! This MUST BE part of Constitution of our project, its CLAUDE.MD and AGENTS.MD if it is not there already, and to be applied to all Submodules's Constitution, CLAUDE.MD and AGENTS.MD as well."
+
+This clause is the leading verbatim operator anti-bluff mandate, restated here for cross-file consistency with this module's CLAUDE.md / AGENTS.md / CONSTITUTION.md. It does NOT weaken any inherited rule. Canonical authority: constitution submodule `Constitution.md` §11.4. Tests AND HelixQA Challenges are bound equally.
+
+
 ## §11.4.78 — CodeGraph code-intelligence mandate
 
 Inherited by §11.4.78 ID reference from `constitution/Constitution.md` §11.4.78 (this module's `CLAUDE.md` and `CONSTITUTION.md` carry the full anchor with the package name and install commands). In brief: every project worked on by AI coding agents MUST install, initialize, and use CodeGraph — a local semantic code-knowledge-graph exposed to agents over MCP — wired into every CLI agent the developers use, covered by an anti-bluff verification suite. See `CLAUDE.md` and `CONSTITUTION.md` in this module, and the constitution submodule `Constitution.md` §11.4.78, for the full mandate.
