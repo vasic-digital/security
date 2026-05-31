@@ -328,3 +328,91 @@ func KeysEqual(a, b *Session) bool {
 	fb := b.SessionKey()
 	return subtle.ConstantTimeCompare(fa, fb) == 1
 }
+
+// Deterministic AEAD ---------------------------------------------------------
+//
+// SealWithKey and OpenWithKey expose the package's AES-256-GCM AEAD as a pure,
+// deterministic function of (key, nonce, aad, plaintext). Unlike Session.Seal —
+// which manages nonces internally and prepends them to the record — these
+// entry points take the caller-supplied nonce and return only the raw
+// ciphertext||tag, identical byte-for-byte to a standalone crypto/aes +
+// crypto/cipher GCM computation over the same inputs. This makes them suitable
+// as cross-implementation byte-interop test vectors and for callers that frame
+// the nonce themselves.
+//
+// CAUTION: AES-GCM is catastrophically insecure if a (key, nonce) pair is ever
+// reused for two distinct plaintexts. SealWithKey performs no nonce-uniqueness
+// bookkeeping — that responsibility is entirely the caller's. For ordinary
+// channel use prefer the Session API, which issues unique nonces and enforces
+// single-use on Open.
+//
+// FUTURE ENHANCEMENT — ChaCha20-Poly1305 alternative AEAD: a ChaCha20-Poly1305
+// variant of these entry points (e.g. for platforms without AES hardware
+// acceleration, where it resists cache-timing side channels) is intentionally
+// NOT provided here. The Go standard library ships no ChaCha20-Poly1305
+// implementation; it lives in golang.org/x/crypto/chacha20poly1305, an external
+// dependency this stdlib-only module deliberately does not add. Implementing it
+// would require taking that dependency and is left as a documented future
+// enhancement.
+
+// SealWithKey encrypts plaintext with AES-256-GCM under the supplied 32-byte key
+// and 12-byte nonce, authenticating aad. It returns the raw ciphertext||tag
+// (length len(plaintext)+16), WITHOUT any nonce prefix. The output is identical
+// to crypto/cipher GCM's Seal over the same inputs, so it can be reproduced by
+// any conforming AES-256-GCM implementation.
+//
+// The caller MUST guarantee the (key, nonce) pair is never reused for a
+// different plaintext; this function does no uniqueness tracking.
+func SealWithKey(key, nonce, aad, plaintext []byte) ([]byte, error) {
+	gcm, err := newDeterministicAEAD(key, nonce)
+	if err != nil {
+		return nil, err
+	}
+	return gcm.Seal(nil, nonce, plaintext, aad), nil
+}
+
+// OpenWithKey authenticates and decrypts a raw ciphertext||tag produced by
+// SealWithKey (or any conforming AES-256-GCM implementation) under the supplied
+// 32-byte key and 12-byte nonce, verifying aad. It returns ErrOpen on any
+// authentication failure (tamper, wrong key/nonce, or AAD mismatch) and
+// ErrInvalidCiphertext if the input is too short to contain a tag.
+func OpenWithKey(key, nonce, aad, ciphertext []byte) ([]byte, error) {
+	gcm, err := newDeterministicAEAD(key, nonce)
+	if err != nil {
+		return nil, err
+	}
+	if len(ciphertext) < gcm.Overhead() {
+		return nil, fmt.Errorf("e2ee: ciphertext is %d bytes, too short for tag: %w",
+			len(ciphertext), ErrInvalidCiphertext)
+	}
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, aad)
+	if err != nil {
+		return nil, fmt.Errorf("e2ee: %w", ErrOpen)
+	}
+	return plaintext, nil
+}
+
+// newDeterministicAEAD validates the key and nonce sizes and constructs the
+// AES-256-GCM AEAD shared by SealWithKey and OpenWithKey.
+func newDeterministicAEAD(key, nonce []byte) (cipher.AEAD, error) {
+	if len(key) != SessionKeySize {
+		return nil, fmt.Errorf("e2ee: key is %d bytes, want %d: %w",
+			len(key), SessionKeySize, ErrInvalidKeySize)
+	}
+	if len(nonce) != NonceSize {
+		return nil, fmt.Errorf("e2ee: nonce is %d bytes, want %d: %w",
+			len(nonce), NonceSize, ErrInvalidKeySize)
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("e2ee: new aes cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("e2ee: new gcm: %w", err)
+	}
+	if gcm.NonceSize() != NonceSize {
+		return nil, fmt.Errorf("e2ee: unexpected gcm nonce size %d", gcm.NonceSize())
+	}
+	return gcm, nil
+}
