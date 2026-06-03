@@ -138,6 +138,7 @@ go vet ./...
 
 ### External
 - `github.com/stretchr/testify v1.10.0` -- test assertions and requirements (test-only)
+- `golang.org/x/crypto` -- audited crypto library; permitted for the ChaCha20-Poly1305 AEAD (`golang.org/x/crypto/chacha20poly1305`, RFC 8439) used by `pkg/e2ee` alongside stdlib AES-256-GCM. (Operator-authorized 2026-06-03 for HXC-1561, overriding the prior testify-only clause for this single audited crypto dependency.)
 
 ### Indirect (via testify)
 - `github.com/davecgh/go-spew v1.1.1`

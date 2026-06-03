@@ -95,6 +95,12 @@ type SessionConfig struct {
 	// uniqueness without RNG draws; random mode relies on RNG. Either way,
 	// Open enforces single-use of each nonce.
 	CounterNonce bool
+
+	// Suite selects the symmetric AEAD for record protection. The zero value
+	// (SuiteAES256GCM) keeps AES-256-GCM for back-compatibility; set
+	// SuiteChaCha20Poly1305 to use ChaCha20-Poly1305 (RFC 8439). Both peers MUST
+	// select the same suite for Open to succeed.
+	Suite AEADSuite
 }
 
 // NewInitiator creates an Initiator with a fresh ephemeral ML-KEM-768 keypair.
@@ -128,7 +134,7 @@ func Respond(encapKeyBytes []byte, cfg SessionConfig) (ciphertext []byte, sess *
 	if err != nil {
 		return nil, nil, err
 	}
-	s, err := newSession(sessionKey, cfg.CounterNonce)
+	s, err := newSession(sessionKey, cfg.CounterNonce, cfg.Suite)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,7 +160,7 @@ func (in *Initiator) Complete(ciphertext []byte, cfg SessionConfig) (*Session, e
 	if err != nil {
 		return nil, err
 	}
-	return newSession(sessionKey, cfg.CounterNonce)
+	return newSession(sessionKey, cfg.CounterNonce, cfg.Suite)
 }
 
 // deriveSessionKey expands the ML-KEM shared secret into an AES-256 key using
@@ -196,10 +202,12 @@ type Session struct {
 	used    map[[NonceSize]byte]struct{} // nonces already consumed by Open
 }
 
-// newSession builds a Session from a 32-byte AES-256 key.
-func newSession(key []byte, counter bool) (*Session, error) {
+// newGCMAEAD validates the key size and constructs an AES-256-GCM AEAD. It is
+// the single AES-GCM construction point shared by Session creation and the
+// deterministic SealWithKey/OpenWithKey helpers.
+func newGCMAEAD(key []byte) (cipher.AEAD, error) {
 	if len(key) != SessionKeySize {
-		return nil, fmt.Errorf("e2ee: session key is %d bytes, want %d: %w",
+		return nil, fmt.Errorf("e2ee: key is %d bytes, want %d: %w",
 			len(key), SessionKeySize, ErrInvalidKeySize)
 	}
 	block, err := aes.NewCipher(key)
@@ -213,18 +221,36 @@ func newSession(key []byte, counter bool) (*Session, error) {
 	if gcm.NonceSize() != NonceSize {
 		return nil, fmt.Errorf("e2ee: unexpected gcm nonce size %d", gcm.NonceSize())
 	}
+	return gcm, nil
+}
+
+// newSession builds a Session from a 32-byte key using the selected AEAD suite.
+func newSession(key []byte, counter bool, suite AEADSuite) (*Session, error) {
+	aead, err := newAEAD(suite, key)
+	if err != nil {
+		return nil, err
+	}
 	return &Session{
-		aead:    gcm,
+		aead:    aead,
 		counter: counter,
 		used:    make(map[[NonceSize]byte]struct{}),
 	}, nil
 }
 
 // NewSessionFromKey constructs a Session directly from a 32-byte key, bypassing
-// the handshake. It is intended for testing and for callers that establish the
-// session key out of band.
+// the handshake. It uses AES-256-GCM. For an explicit suite use
+// NewSessionFromKeyWithSuite. It is intended for testing and for callers that
+// establish the session key out of band.
 func NewSessionFromKey(key []byte, counter bool) (*Session, error) {
-	return newSession(key, counter)
+	return newSession(key, counter, SuiteAES256GCM)
+}
+
+// NewSessionFromKeyWithSuite constructs a Session directly from a 32-byte key
+// under the chosen AEAD suite, bypassing the handshake. It is intended for
+// testing and for callers that establish the session key out of band and want
+// to select ChaCha20-Poly1305.
+func NewSessionFromKeyWithSuite(key []byte, counter bool, suite AEADSuite) (*Session, error) {
+	return newSession(key, counter, suite)
 }
 
 // SessionKey returns nothing sensitive; it exists only so tests can confirm two
@@ -364,11 +390,18 @@ func KeysEqual(a, b *Session) bool {
 // The caller MUST guarantee the (key, nonce) pair is never reused for a
 // different plaintext; this function does no uniqueness tracking.
 func SealWithKey(key, nonce, aad, plaintext []byte) ([]byte, error) {
-	gcm, err := newDeterministicAEAD(key, nonce)
+	return SealWithKeySuite(SuiteAES256GCM, key, nonce, aad, plaintext)
+}
+
+// SealWithKeySuite is the suite-selectable form of SealWithKey. With
+// SuiteChaCha20Poly1305 it produces RFC 8439 ChaCha20-Poly1305 output
+// (ciphertext||tag) byte-for-byte reproducible by any conforming implementation.
+func SealWithKeySuite(suite AEADSuite, key, nonce, aad, plaintext []byte) ([]byte, error) {
+	aead, err := newDeterministicAEAD(suite, key, nonce)
 	if err != nil {
 		return nil, err
 	}
-	return gcm.Seal(nil, nonce, plaintext, aad), nil
+	return aead.Seal(nil, nonce, plaintext, aad), nil
 }
 
 // OpenWithKey authenticates and decrypts a raw ciphertext||tag produced by
@@ -377,42 +410,34 @@ func SealWithKey(key, nonce, aad, plaintext []byte) ([]byte, error) {
 // authentication failure (tamper, wrong key/nonce, or AAD mismatch) and
 // ErrInvalidCiphertext if the input is too short to contain a tag.
 func OpenWithKey(key, nonce, aad, ciphertext []byte) ([]byte, error) {
-	gcm, err := newDeterministicAEAD(key, nonce)
+	return OpenWithKeySuite(SuiteAES256GCM, key, nonce, aad, ciphertext)
+}
+
+// OpenWithKeySuite is the suite-selectable form of OpenWithKey. It authenticates
+// and decrypts ciphertext||tag produced under the named suite.
+func OpenWithKeySuite(suite AEADSuite, key, nonce, aad, ciphertext []byte) ([]byte, error) {
+	aead, err := newDeterministicAEAD(suite, key, nonce)
 	if err != nil {
 		return nil, err
 	}
-	if len(ciphertext) < gcm.Overhead() {
+	if len(ciphertext) < aead.Overhead() {
 		return nil, fmt.Errorf("e2ee: ciphertext is %d bytes, too short for tag: %w",
 			len(ciphertext), ErrInvalidCiphertext)
 	}
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, aad)
+	plaintext, err := aead.Open(nil, nonce, ciphertext, aad)
 	if err != nil {
 		return nil, fmt.Errorf("e2ee: %w", ErrOpen)
 	}
 	return plaintext, nil
 }
 
-// newDeterministicAEAD validates the key and nonce sizes and constructs the
-// AES-256-GCM AEAD shared by SealWithKey and OpenWithKey.
-func newDeterministicAEAD(key, nonce []byte) (cipher.AEAD, error) {
-	if len(key) != SessionKeySize {
-		return nil, fmt.Errorf("e2ee: key is %d bytes, want %d: %w",
-			len(key), SessionKeySize, ErrInvalidKeySize)
-	}
+// newDeterministicAEAD validates the nonce size and constructs the AEAD for the
+// selected suite, shared by SealWithKey(Suite) and OpenWithKey(Suite). Key-size
+// validation is performed inside the per-suite constructor (newAEAD).
+func newDeterministicAEAD(suite AEADSuite, key, nonce []byte) (cipher.AEAD, error) {
 	if len(nonce) != NonceSize {
 		return nil, fmt.Errorf("e2ee: nonce is %d bytes, want %d: %w",
 			len(nonce), NonceSize, ErrInvalidKeySize)
 	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, fmt.Errorf("e2ee: new aes cipher: %w", err)
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("e2ee: new gcm: %w", err)
-	}
-	if gcm.NonceSize() != NonceSize {
-		return nil, fmt.Errorf("e2ee: unexpected gcm nonce size %d", gcm.NonceSize())
-	}
-	return gcm, nil
+	return newAEAD(suite, key)
 }
