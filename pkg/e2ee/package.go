@@ -6,8 +6,11 @@
 //   - Key establishment via ML-KEM-768 (NIST FIPS 203) using crypto/mlkem.
 //   - Symmetric session key derivation via HKDF-SHA-256 (crypto/hkdf) with a
 //     domain-separation info label and a salt taken from the KEM ciphertext.
-//   - AEAD record protection via AES-256-GCM (crypto/aes + crypto/cipher) with
-//     a unique nonce per message (monotonic counter or random 96-bit), with
+//   - AEAD record protection via a negotiable suite (SessionConfig.Suite):
+//     AES-256-GCM is the canonical default (crypto/aes + crypto/cipher), with
+//     ChaCha20-Poly1305 (RFC 8439, x/crypto) as a supported alternative for
+//     non-AES-NI peers and Chutes wire compatibility (HXC-941). Both use a
+//     unique nonce per message (monotonic counter or random 96-bit), with
 //     explicit reuse rejection.
 //
 // The handshake is two-peer: an initiator publishes an ephemeral ML-KEM
@@ -372,14 +375,15 @@ func KeysEqual(a, b *Session) bool {
 // channel use prefer the Session API, which issues unique nonces and enforces
 // single-use on Open.
 //
-// FUTURE ENHANCEMENT — ChaCha20-Poly1305 alternative AEAD: a ChaCha20-Poly1305
-// variant of these entry points (e.g. for platforms without AES hardware
-// acceleration, where it resists cache-timing side channels) is intentionally
-// NOT provided here. The Go standard library ships no ChaCha20-Poly1305
-// implementation; it lives in golang.org/x/crypto/chacha20poly1305, an external
-// dependency this stdlib-only module deliberately does not add. Implementing it
-// would require taking that dependency and is left as a documented future
-// enhancement.
+// AEAD-suite reconciliation (HXC-941): AES-256-GCM is the CANONICAL DEFAULT
+// here (hardware-accelerated on AES-NI, FIPS 197 / SP 800-38D, and the wire
+// AEAD of the chutes Aegis layer), and ChaCha20-Poly1305 is a fully-supported
+// NEGOTIABLE alternative (RFC 8439, via golang.org/x/crypto/chacha20poly1305,
+// for non-AES-NI peers where it resists cache-timing side channels, and for
+// Chutes-vector wire compatibility). The suite-selectable forms below —
+// SealWithKeySuite / OpenWithKeySuite — expose BOTH; the bare SealWithKey /
+// OpenWithKey default to SuiteAES256GCM. Both suites are pinned to published
+// Known-Answer Test vectors in kat_test.go.
 
 // SealWithKey encrypts plaintext with AES-256-GCM under the supplied 32-byte key
 // and 12-byte nonce, authenticating aad. It returns the raw ciphertext||tag
