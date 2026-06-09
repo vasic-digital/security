@@ -1154,3 +1154,117 @@ Cascade reference — see constitution submodule `Constitution.md` §11.4.120 fo
 Cascade reference — see constitution submodule `Constitution.md` §11.4.121 for the full mandate. A commit MUST NOT run while a build/packaging/generation step is actively writing artifacts into tracked (version-controlled) directories. The commit MUST be deferred until the writing step completes so the tree is quiescent and committed artifacts are the fresh, whole outputs. Propagation gate `CM-COVENANT-114-121-PROPAGATION` (literal `11.4.121`). Non-compliance is a release blocker.
 
 **Canonical authority:** constitution submodule `Constitution.md` §11.4.121.
+
+## §11.4.103 — Continuous parallel-stream working routine (cascaded from constitution submodule §11.4.103)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.103 for the full mandate. The endless fully-autonomous loop default (§11.4.87/§11.4.126) MUST run as a continuous parallel-stream routine: the main stream stays FREE (all commits + pushes detached per §11.4.88); at least 3 background subagent streams run concurrently and auto-backfill when any completes; audio-first + most-critical-first priority (§11.4.72/§11.4.42); safe-during-build scope only (§11.4.96); idle ONLY when genuinely externally blocked. Propagation gate `CM-COVENANT-114-103-PROPAGATION` (literal `11.4.103`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.103.
+
+## §11.4.104 — Participant identity, attribution & notification-tagging (cascaded from constitution submodule §11.4.104)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.104 for the full mandate. Every consumer that ships a messenger/notification surface MUST model participants as logical subscribers with per-channel aliases, carry `created_by` + `assigned_to` on workable items, apply the tagging matrix (tag assigned-to/created-by humans who are not the Operator and not the system agent `Claude`), and anti-bluff the full implementation per §11.4. Propagation gate `CM-COVENANT-114-104-PROPAGATION` (literal `11.4.104`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.104.
+
+## §11.4.105 — Natural-language intent recognition & clarification (cascaded from constitution submodule §11.4.105)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.105 for the full mandate. Users MUST NOT be required to know command syntax; they send plain natural language and the system determines the intent via three-tier resolution (command match → intent inference → tagged clarifying reply). Never guess, never silently drop a message. Propagation gate `CM-COVENANT-114-105-PROPAGATION` (literal `11.4.105`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.105.
+
+## §11.4.106 — Docs Chain — mechanical documentation/DB sync engine (cascaded from constitution submodule §11.4.106)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.106 for the full mandate. Every consumer MUST use the `vasic-digital/docs_chain` engine (inherited by reference, never copied) as the canonical mechanical enforcer of all documentation-sync mandates; register chains via per-context YAML; never accept a faked transform. Ad-hoc sync scripts are superseded. Propagation gate `CM-COVENANT-114-106-PROPAGATION` (literal `11.4.106`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.106.
+
+## §11.4.107 — Anti-bluff AV/test-validation techniques mandate (cascaded from constitution submodule §11.4.107)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.107 for the full mandate. Every test asserting audio/video output is genuinely playing MUST prove live advancing frames (freeze-detection oracle + independent frame-advance counter), not-stale-from-previous cross-check, no-flash-on-wrong-output, metamorphic relations, full-reference quality metrics, mutation-tested analyzers with golden-good/golden-bad fixtures, per-channel audio RMS, and calibrated thresholds. A single captured frame is NOT proof. Propagation gate `CM-COVENANT-114-107-PROPAGATION` (literal `11.4.107`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.107.
+
+## §11.4.108 — Four-layer fix-verification + runtime-signature-as-definition-of-done mandate (cascaded from constitution submodule §11.4.108)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.108 for the full mandate. A fix crosses four distinct layers: SOURCE → ARTIFACT → RUNTIME-ON-CLEAN-TARGET → USER-VISIBLE. Green at layer 1 says nothing about layers 2–4. Every fix declares one machine-checkable runtime signature verified on a clean target; gates span all four layers; deployment MUST yield a clean state or a pre-validation assertion proves running-artifact == built-artifact. Propagation gate `CM-COVENANT-114-108-PROPAGATION` (literal `11.4.108`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.108.
+
+## §11.4.109 — Mandatory Anti-Forgetting Enforcement: PreToolUse Guard Hook + Subagent Constitutional Preamble + Orchestrator Pre-Action Checklist (cascaded from constitution submodule §11.4.109)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.109 for the full mandate. Every consumer MUST wire `constitution/scripts/hooks/guard-forbidden-commands.sh` as a `PreToolUse` hook, maintain `docs/AGENT_GUARDRAILS.md` with the subagent constitutional preamble and orchestrator pre-action checklist, and provide a hermetic hook test suite. The hook is inherited by reference, never copied. Propagation gate `CM-COVENANT-114-109-PROPAGATION` (literal `11.4.109`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.109.
+
+## §11.4.110 — Pre-build build-readiness verdict + change-impact clash detection mandate (cascaded from constitution submodule §11.4.110)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.110 for the full mandate. A single deterministic READY-FOR-BUILD verdict gates every rebuild; a diff-driven change-impact clash detector cross-checks every newly-introduced second-artifact dependency; coverage-completeness is a gate; every gate is anti-bluff by paired §1.1 mutation. Propagation gate `CM-COVENANT-114-110-PROPAGATION` (literal `11.4.110`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.110.
+
+## §11.4.111 — Resolve-by-stable-name-not-by-enumeration-index mandate (cascaded from constitution submodule §11.4.111)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.111 for the full mandate. Any binding to a hardware device / resource handle / enumerated entity MUST resolve by a stable identifier (name / UUID / serial / label) and MUST NOT bind by enumeration index / ordinal / slot unless the platform documents that ordinal as deterministically pinned and the pin is captured + asserted. Propagation gate `CM-COVENANT-114-111-PROPAGATION` (literal `11.4.111`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.111.
+
+## §11.4.112 — Structural-impossibility won't-fix classification mandate (cascaded from constitution submodule §11.4.112)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.112 for the full mandate. When deep research per §11.4.8 PROVES a goal is structurally impossible by platform design, it MUST be classified `Won't-fix` + closed with `structurally-impossible` reason, documented with cited authoritative sources + reproducible evidence, and NOT re-attempted without new evidence that the platform constraint changed. Propagation gate `CM-COVENANT-114-112-PROPAGATION` (literal `11.4.112`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.112.
+
+## §11.4.113 — Absolute no-force-push + merge-onto-latest-main mandate (cascaded from constitution submodule §11.4.113)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.113 for the full mandate. Force-push is STRICTLY FORBIDDEN with NO exception. Every publish follows the 6-step integration: fetch all remotes → base on latest main tip → carefully merge all changes on top → resolve conflicts → commit → push to ALL upstreams (fast-forward only, so no force is ever needed). Propagation gate `CM-COVENANT-114-113-PROPAGATION` (literal `11.4.113`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.113.
+
+## §11.4.114 — Last-known-good-tag regression isolation mandate (cascaded from constitution submodule §11.4.114)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.114 for the full mandate. When a previously-working feature is observed broken, the FIRST diagnostic action MUST be to identify the last known-good tag and diff/bisect against it BEFORE any open-ended root-cause hunt. Default to a surgical forward-fix keeping post-good-tag features; revert only with operator preference. Propagation gate `CM-COVENANT-114-114-PROPAGATION` (literal `11.4.114`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.114.
+
+## §11.4.115 — RED-baseline-on-the-broken-artifact + polarity-switch mandate (cascaded from constitution submodule §11.4.115)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.115 for the full mandate. Every RED test MUST reproduce the defect on the current pre-fix artifact with captured positive evidence. The same test source carries a polarity switch (`RED_MODE`, default `1` = reproduce defect, `0` = regression guard). One source, two roles. RED-on-broken then GREEN-on-fixed (on a clean target) MUST both be captured. Propagation gate `CM-COVENANT-114-115-PROPAGATION` (literal `11.4.115`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.115.
+
+## §11.4.116 — Real-time conductor↔autonomous-test-framework sync channel mandate (cascaded from constitution submodule §11.4.116)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.116 for the full mandate. Any autonomous long-running test/QA/validation framework MUST expose a structured append-only event stream and an atomically-rewritten status snapshot. Every verdict event MUST carry the evidence path that backs it. A PASS event with no evidence path is a channel-layer PASS-bluff. Propagation gate `CM-COVENANT-114-116-PROPAGATION` (literal `11.4.116`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.116.
+
+## §11.4.117 — Computer-vision / OCR pixel-oracle fallback for non-introspectable UIs mandate (cascaded from constitution submodule §11.4.117)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.117 for the full mandate. When the accessibility/semantic hierarchy is blank/partial/unreliable for the app under test, tests MUST fall back to a pixel oracle: CV template-match to drive input by rendered appearance; ROI OCR with per-word confidence floor + region-of-interest to assert on-screen content. The analyzer is self-validated with golden-good/golden-bad fixtures. Propagation gate `CM-COVENANT-114-117-PROPAGATION` (literal `11.4.117`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.117.
+
+## §11.4.118 — Discovery-pressure to confirm known-issue-set completeness mandate (cascaded from constitution submodule §11.4.118)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.118 for the full mandate. After fixing reported defects, the cycle MUST run a discovery + stress pass across ALL target environments deliberately exercising subsystems, journeys, and edge cases BEYOND reported defects, producing an enumerated list of subsystems/journeys actually exercised with outcomes. "We found no other issues" without an enumerated coverage list is a §11.4 bluff. Propagation gate `CM-COVENANT-114-118-PROPAGATION` (literal `11.4.118`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.118.
+
+## §11.4.119 — Single-resource-owner partitioning for parallel hardware testing mandate (cascaded from constitution submodule §11.4.119)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.119 for the full mandate. When multiple parallel streams exercise shared hardware or exclusive-access resources, exactly ONE stream MUST own each resource at a time; all others MUST be read-only. Ownership is enforced by an advisory lock/token, event-driven (claim when free, release when done). Concurrent drivers of one exclusive resource produce cross-contaminated evidence — a PASS under contention is a §11.4 evidence-integrity bluff. Propagation gate `CM-COVENANT-114-119-PROPAGATION` (literal `11.4.119`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.119.
+
+## §11.4.120 — Fix-breaks-its-own-gate reconciliation mandate (cascaded from constitution submodule §11.4.120)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.120 for the full mandate. When a correct fix causes a pre-existing gate/test to FAIL because it asserted old behaviour, the gate MUST be reconciled (rewritten to assert the new mechanism + paired §1.1 mutation updated) — never fake-passed, weakened to a tautology, or deleted; and the correct fix MUST NOT be reverted to satisfy the stale gate. Propagation gate `CM-COVENANT-114-120-PROPAGATION` (literal `11.4.120`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.120.
+
+## §11.4.121 — No-commit-while-build-writes-tracked-artifacts mandate (cascaded from constitution submodule §11.4.121)
+
+Cascade reference — see constitution submodule `Constitution.md` §11.4.121 for the full mandate. A commit MUST NOT run while a build/packaging/generation step is actively writing artifacts into tracked (version-controlled) directories. The commit MUST be deferred until the writing step completes so the tree is quiescent and committed artifacts are the fresh, whole outputs. Propagation gate `CM-COVENANT-114-121-PROPAGATION` (literal `11.4.121`). Non-compliance is a release blocker.
+
+**Canonical authority:** constitution submodule `Constitution.md` §11.4.121.
