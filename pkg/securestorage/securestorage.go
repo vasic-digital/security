@@ -191,8 +191,12 @@ func (fs *FileStorage) RetrieveCredentials(service string) (username, password s
 	if _, err := fmt.Sscanf(data[:colonIdx], "%d", &usernameLen); err != nil {
 		return "", "", fmt.Errorf("invalid credential format: %w", err)
 	}
+	// Guard the length on BOTH ends before slicing: a negative prefix (e.g.
+	// "-1:abc") passes the upper-bound check (len(rest) < -1 is false) and
+	// then panics at rest[:usernameLen] with "slice bounds out of range".
+	// Reject negative and over-long lengths with a clean error, never a panic.
 	rest := data[colonIdx+1:]
-	if len(rest) < usernameLen {
+	if usernameLen < 0 || usernameLen > len(rest) {
 		return "", "", fmt.Errorf("invalid credential format")
 	}
 	return rest[:usernameLen], rest[usernameLen:], nil
