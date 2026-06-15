@@ -71,8 +71,12 @@ func (fs *FileStorage) Store(key, value string) error {
 }
 
 func (fs *FileStorage) Retrieve(key string) (string, error) {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
+	// Write lock (not RLock): getOrCreateKey + loadCache mutate shared
+	// state (fs.secretKey, fs.cache, fs.lastMod, fs.lastSize). Holding
+	// only an RLock here lets concurrent readers write those fields
+	// simultaneously — a data race that can corrupt the cached key/state.
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 
 	secretKey, err := fs.getOrCreateKey()
 	if err != nil {
@@ -103,8 +107,9 @@ func (fs *FileStorage) Delete(key string) error {
 }
 
 func (fs *FileStorage) Contains(key string) (bool, error) {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
+	// Write lock (not RLock): loadCache mutates fs.cache/lastMod/lastSize.
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 
 	data, err := fs.loadCache()
 	if err != nil {
@@ -115,8 +120,9 @@ func (fs *FileStorage) Contains(key string) (bool, error) {
 }
 
 func (fs *FileStorage) ListKeys() ([]string, error) {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
+	// Write lock (not RLock): loadCache mutates fs.cache/lastMod/lastSize.
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 
 	data, err := fs.loadCache()
 	if err != nil {
@@ -141,6 +147,11 @@ func (fs *FileStorage) Clear() error {
 }
 
 func (fs *FileStorage) IsSecure() (bool, error) {
+	// Lock: getOrCreateKey mutates fs.secretKey, which must not race with
+	// concurrent Store/Retrieve/etc.
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
 	if err := fs.ensureDir(); err != nil {
 		return false, nil
 	}
