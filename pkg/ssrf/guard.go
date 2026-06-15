@@ -93,6 +93,14 @@ func Validate(target string, cfg Config) error {
 	if ip := ParseShortDottedIP(host); ip != nil {
 		return checkIP(ip, cfg)
 	}
+	// libc inet_aton (used by cgo getaddrinfo and tools like curl) accepts
+	// octal- (leading 0) and hex- (leading 0x) prefixed octets in any of the
+	// 1/2/3/4-part dotted forms. The decimal-only parsers above miss these, so
+	// e.g. http://010.0.0.1/ (=10.0.0.1) or http://0177.0.0.1/ (=127.0.0.1)
+	// would otherwise fall through to the DNS path and be dialled internally.
+	if ip := ParseInetAtonIP(host); ip != nil {
+		return checkIP(ip, cfg)
+	}
 
 	// Hostname path: resolve + reject if any returned IP is private.
 	resolver := cfg.Resolver
@@ -179,6 +187,115 @@ func ParseIntegerIP(host string) net.IP {
 		}
 	}
 	return net.IPv4(byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+}
+
+// ParseInetAtonIP parses a host using the libc inet_aton(3) grammar that
+// cgo getaddrinfo (and curl, wget, and most C-based dialers) honour: 1 to 4
+// dot-separated parts, each part a C-style integer where a "0x"/"0X" prefix is
+// hexadecimal, a leading "0" is octal, and anything else is decimal. The last
+// part absorbs the remaining low-order bytes (a, a.b, a.b.c, a.b.c.d forms).
+// Returns nil when host is not a valid inet_aton numeric address (e.g. a real
+// DNS name, an empty/oversized part, an out-of-range value, or any non-digit in
+// the chosen base) so genuine hostnames still take the DNS path.
+//
+// This catches octal/hex-encoded loopback, private, and metadata addresses that
+// the decimal-only ParseShortDottedIP / ParseIntegerIP miss but that libc will
+// still dial — closing the SSRF bypass those alternative encodings open.
+func ParseInetAtonIP(host string) net.IP {
+	if host == "" {
+		return nil
+	}
+	parts := strings.Split(host, ".")
+	if len(parts) < 1 || len(parts) > 4 {
+		return nil
+	}
+	nums := make([]uint64, len(parts))
+	for i, p := range parts {
+		v, ok := parseCInt(p)
+		if !ok {
+			return nil
+		}
+		nums[i] = v
+	}
+	// Every part except the final absorbing part is a single octet (< 256).
+	for i := 0; i < len(nums)-1; i++ {
+		if nums[i] > 0xFF {
+			return nil
+		}
+	}
+	last := nums[len(nums)-1]
+	var full uint64
+	switch len(nums) {
+	case 1:
+		full = nums[0]
+	case 2:
+		// a.b : b is the low 24 bits.
+		if last > 0xFFFFFF {
+			return nil
+		}
+		full = nums[0]<<24 | last
+	case 3:
+		// a.b.c : c is the low 16 bits.
+		if last > 0xFFFF {
+			return nil
+		}
+		full = nums[0]<<24 | nums[1]<<16 | last
+	case 4:
+		// a.b.c.d : d is the low 8 bits.
+		if last > 0xFF {
+			return nil
+		}
+		full = nums[0]<<24 | nums[1]<<16 | nums[2]<<8 | last
+	}
+	if full > 0xFFFFFFFF {
+		return nil
+	}
+	return net.IPv4(byte(full>>24), byte(full>>16), byte(full>>8), byte(full))
+}
+
+// parseCInt parses one inet_aton part with C strtoul base auto-detection:
+// "0x"/"0X" prefix => hex, a leading "0" => octal, otherwise decimal. It returns
+// ok=false on an empty part, a bare/garbage prefix, any digit invalid for the
+// chosen base, or overflow beyond 32 bits (no single libc part exceeds that).
+func parseCInt(p string) (uint64, bool) {
+	if p == "" {
+		return 0, false
+	}
+	base := 10
+	digits := p
+	switch {
+	case len(p) >= 2 && p[0] == '0' && (p[1] == 'x' || p[1] == 'X'):
+		base = 16
+		digits = p[2:]
+		if digits == "" { // bare "0x" is not a valid octet
+			return 0, false
+		}
+	case len(p) >= 2 && p[0] == '0':
+		base = 8
+		digits = p[1:]
+	}
+	var v uint64
+	for _, r := range digits {
+		var d uint64
+		switch {
+		case r >= '0' && r <= '9':
+			d = uint64(r - '0')
+		case r >= 'a' && r <= 'f':
+			d = uint64(r-'a') + 10
+		case r >= 'A' && r <= 'F':
+			d = uint64(r-'A') + 10
+		default:
+			return 0, false
+		}
+		if d >= uint64(base) {
+			return 0, false
+		}
+		v = v*uint64(base) + d
+		if v > 0xFFFFFFFF {
+			return 0, false
+		}
+	}
+	return v, true
 }
 
 // ParseShortDottedIP expands a two- or three-octet dotted form to
