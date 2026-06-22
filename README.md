@@ -321,9 +321,9 @@ go vet ./...                     # Vet all packages
 - `github.com/stretchr/testify` -- Testing assertions
 - No other external dependencies (zero-dependency production code)
 
-## Integration with HelixAgent
+## Integration with the consuming project
 
-The Security module is used throughout HelixAgent:
+The Security module is used throughout the consuming project:
 - Guardrails engine validates LLM input and output in the debate pipeline
 - PII redactor cleans sensitive data before logging and storage
 - Content filters enforce input constraints on API endpoints
@@ -332,7 +332,7 @@ The Security module is used throughout HelixAgent:
 - Security headers middleware is applied to all HTTP endpoints
 - Secure storage handles API key and credential persistence
 
-The internal adapter at `internal/adapters/security/` bridges these generic types to HelixAgent-specific interfaces.
+The internal adapter at `internal/adapters/security/` bridges these generic types to the consuming project's interfaces.
 
 ## License
 

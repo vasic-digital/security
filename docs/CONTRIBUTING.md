@@ -129,7 +129,7 @@ Do not add new external dependencies without discussion. The module must remain 
 
 ## Module Independence
 
-This module must never depend on HelixAgent (`dev.helix.agent`) or any other application-specific module. It is designed to be a generic, reusable library. Integration with HelixAgent happens in the HelixAgent codebase, not here.
+This module must never depend on the consuming project (`dev.helix.agent`) or any other application-specific module. It is designed to be a generic, reusable library. Integration with the consuming project happens in the consuming project's codebase, not here.
 
 ## Pull Request Checklist
 

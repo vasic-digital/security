@@ -43,7 +43,7 @@ clean:
 	rm -f coverage.out coverage.html
 	go clean -cache
 
-# Challenges (run from parent HelixAgent project)
+# Challenges (run from the parent project)
 challenge:
 	../challenges/scripts/security_challenge.sh 2>/dev/null || echo "No challenge script"
 
@@ -66,7 +66,7 @@ help:
 	@echo "  make clean         Remove build artifacts"
 	@echo "  make challenge     Run challenge script (from parent project)"
 
-# Definition of Done gates — portable drop-in from HelixAgent
+# Definition of Done gates — portable drop-in from the parent project
 .PHONY: no-silent-skips no-silent-skips-warn demo-all demo-all-warn demo-one ci-validate-all
 
 no-silent-skips:
