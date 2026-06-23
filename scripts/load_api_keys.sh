@@ -2,8 +2,8 @@
 # scripts/load_api_keys.sh
 # Generic API-key loader (project-agnostic per CONST-051(B)): prefers
 # $HOME/api_keys.sh (with `export VAR=value`), falls back to local .env
-# (VAR=value). Originated in HelixCode but reusable by any consumer —
-# function names use `helixcode_*` as a namespace prefix; forkers may
+# (VAR=value). Originated in a consuming project but reusable by any consumer —
+# function names use the `helixcode_*` namespace prefix; forkers may
 # alias / rename without changing behaviour.
 #
 # Source this file from any subdirectory; it walks up to find the meta-repo root
