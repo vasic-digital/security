@@ -66,6 +66,28 @@ func TestPkg_ConcurrentAccess(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+
+	// Observable post-join assertion: after the concurrent storm of
+	// SetPkgTranslator/Pkg calls, the translator registry must still be
+	// uncorrupted and fully functional. Set a known translator and a known
+	// fallback, then assert each returns its correct, expected translation
+	// for a known key — proving no data loss / torn state under concurrency.
+	SetPkgTranslator(stubTranslator{prefix: "C:"})
+	got, err := Pkg().T(context.Background(), "post_join", nil)
+	if err != nil {
+		t.Fatalf("post-join translator returned error after concurrent access: %v", err)
+	}
+	if got != "C:post_join" {
+		t.Fatalf("post-join translator corrupted: got %q, want %q", got, "C:post_join")
+	}
+	SetPkgTranslator(nil)
+	gotNoop, err := Pkg().T(context.Background(), "post_join", nil)
+	if err != nil {
+		t.Fatalf("post-join NoopTranslator returned error after concurrent access: %v", err)
+	}
+	if gotNoop != "post_join" {
+		t.Fatalf("post-join nil reset corrupted: got %q, want verbatim %q", gotNoop, "post_join")
+	}
 }
 
 // TestNoopTranslator_MutationFalsifiability is the paired mutation gate:

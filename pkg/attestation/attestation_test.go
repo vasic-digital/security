@@ -309,6 +309,7 @@ func TestAttest_NonceSizeEnforced(t *testing.T) {
 // hoc mutation would alter the signed value and Verify would fail, failing this
 // test.
 func TestAttest_DefensiveCopy(t *testing.T) {
+	// bluff-scan: nil-only-ok (Verify() success proves the defensive copy held against post-sign caller mutation)
 	_, _, now, _, nonce := setup(t)
 	att, err := NewAttester()
 	if err != nil {
@@ -347,6 +348,7 @@ func TestNewVerifier_RejectsBadRoot(t *testing.T) {
 // MUTATION: change SignQuote to return a fixed/garbage signature — Verify would
 // reject and this test fails.
 func TestQuoteSignerSeam(t *testing.T) {
+	// bluff-scan: nil-only-ok (Verify() success proves the custom QuoteSigner seam drives real signing)
 	var _ QuoteSigner = (*Attester)(nil) // compile-time interface assertion
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
