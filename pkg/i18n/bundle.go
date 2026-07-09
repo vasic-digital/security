@@ -30,4 +30,5 @@ const (
 	MsgPrivescSUIDDesc                       = "security_privesc_suid_desc"
 	MsgPrivescSUIDFail                       = "security_privesc_suid_fail"
 	MsgPrivescSUIDOK                         = "security_privesc_suid_ok"
+	MsgPrivescSUIDUnknownPaths               = "security_privesc_suid_unknown_paths"
 )

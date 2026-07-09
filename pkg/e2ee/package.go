@@ -97,6 +97,19 @@ type SessionConfig struct {
 	// for nonces instead of random 96-bit nonces. Counter mode guarantees
 	// uniqueness without RNG draws; random mode relies on RNG. Either way,
 	// Open enforces single-use of each nonce.
+	//
+	// Directional safety: a handshake produces TWO independently-constructed
+	// Session objects (one via Respond, one via Initiator.Complete) that share
+	// the identical derived AEAD key. In counter mode, each Session partitions
+	// its nonce space by handshake role (see newSession/nextNonce) so that the
+	// initiator's and the responder's counter sequences can never collide even
+	// when both sides call Seal on the same underlying key -- e.g. a
+	// bidirectional Transport where each peer both writes and reads on its own
+	// Session. Without this partitioning, both sides' counters start at the
+	// same value, so their first (and every subsequent same-index) Seal call
+	// would emit the identical nonce under the identical key -- a catastrophic
+	// AES-GCM/ChaCha20-Poly1305 (key, nonce) reuse that breaks confidentiality
+	// and (for GCM) enables authentication-tag forgery.
 	CounterNonce bool
 
 	// Suite selects the symmetric AEAD for record protection. The zero value
@@ -137,7 +150,7 @@ func Respond(encapKeyBytes []byte, cfg SessionConfig) (ciphertext []byte, sess *
 	if err != nil {
 		return nil, nil, err
 	}
-	s, err := newSession(sessionKey, cfg.CounterNonce, cfg.Suite)
+	s, err := newSession(sessionKey, cfg.CounterNonce, cfg.Suite, roleResponder)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,7 +176,7 @@ func (in *Initiator) Complete(ciphertext []byte, cfg SessionConfig) (*Session, e
 	if err != nil {
 		return nil, err
 	}
-	return newSession(sessionKey, cfg.CounterNonce, cfg.Suite)
+	return newSession(sessionKey, cfg.CounterNonce, cfg.Suite, roleInitiator)
 }
 
 // deriveSessionKey expands the ML-KEM shared secret into an AES-256 key using
@@ -194,11 +207,30 @@ func infoOrDefault(info string) string {
 
 // Session --------------------------------------------------------------------
 
+// sessionRole distinguishes the two peers of a handshake so that counter-mode
+// nonces from each direction can never collide even though both peers derive
+// the identical AEAD key (see SessionConfig.CounterNonce). It has no effect on
+// random-mode nonces, whose 96 bits of entropy already make cross-peer
+// collision negligible.
+type sessionRole uint8
+
+const (
+	// roleInitiator is the handshake-initiator's role, and is also the role
+	// used by NewSessionFromKey / NewSessionFromKeyWithSuite for exact
+	// byte-for-byte backward compatibility with callers that predate role
+	// partitioning (its nonce-space contribution is the zero value).
+	roleInitiator sessionRole = 0
+
+	// roleResponder is the handshake-responder's role.
+	roleResponder sessionRole = 1
+)
+
 // Session is an established AEAD channel keyed by a derived session key. It is
 // safe for concurrent use: nonce issuance and reuse tracking are mutex-guarded.
 type Session struct {
 	aead    cipher.AEAD
 	counter bool
+	role    sessionRole
 
 	mu      sync.Mutex
 	nextCtr uint64                       // next counter value when counter==true
@@ -227,8 +259,11 @@ func newGCMAEAD(key []byte) (cipher.AEAD, error) {
 	return gcm, nil
 }
 
-// newSession builds a Session from a 32-byte key using the selected AEAD suite.
-func newSession(key []byte, counter bool, suite AEADSuite) (*Session, error) {
+// newSession builds a Session from a 32-byte key using the selected AEAD suite
+// and handshake role. role only affects counter-mode nonce generation (see
+// nextNonce); it partitions the nonce space so that two Sessions sharing a key
+// but built with different roles can never emit the same counter-mode nonce.
+func newSession(key []byte, counter bool, suite AEADSuite, role sessionRole) (*Session, error) {
 	aead, err := newAEAD(suite, key)
 	if err != nil {
 		return nil, err
@@ -236,24 +271,50 @@ func newSession(key []byte, counter bool, suite AEADSuite) (*Session, error) {
 	return &Session{
 		aead:    aead,
 		counter: counter,
+		role:    role,
 		used:    make(map[[NonceSize]byte]struct{}),
 	}, nil
 }
 
 // NewSessionFromKey constructs a Session directly from a 32-byte key, bypassing
-// the handshake. It uses AES-256-GCM. For an explicit suite use
-// NewSessionFromKeyWithSuite. It is intended for testing and for callers that
+// the handshake. It uses AES-256-GCM and the initiator role (identical
+// nonce-prefix bytes to every version of this function predating role
+// partitioning). For an explicit suite use NewSessionFromKeyWithSuite; for an
+// explicit (and, for bidirectional out-of-band use, mandatory) role use
+// NewSessionFromKeyWithRole. It is intended for testing and for callers that
 // establish the session key out of band.
 func NewSessionFromKey(key []byte, counter bool) (*Session, error) {
-	return newSession(key, counter, SuiteAES256GCM)
+	return newSession(key, counter, SuiteAES256GCM, roleInitiator)
 }
 
 // NewSessionFromKeyWithSuite constructs a Session directly from a 32-byte key
-// under the chosen AEAD suite, bypassing the handshake. It is intended for
-// testing and for callers that establish the session key out of band and want
-// to select ChaCha20-Poly1305.
+// under the chosen AEAD suite and the initiator role, bypassing the handshake.
+// It is intended for testing and for callers that establish the session key
+// out of band and want to select ChaCha20-Poly1305. Callers that will run TWO
+// out-of-band Sessions from the SAME key with CounterNonce enabled and have
+// BOTH sides call Seal (a bidirectional channel) MUST use
+// NewSessionFromKeyWithRole instead, giving each side a distinct role -- two
+// same-role Sessions sharing a key reintroduce the counter-mode nonce
+// collision this package's role partitioning exists to prevent.
 func NewSessionFromKeyWithSuite(key []byte, counter bool, suite AEADSuite) (*Session, error) {
-	return newSession(key, counter, suite)
+	return newSession(key, counter, suite, roleInitiator)
+}
+
+// NewSessionFromKeyWithRole is the fully general out-of-band constructor: it
+// behaves like NewSessionFromKeyWithSuite but additionally lets the caller pin
+// this Session's directional role. Two out-of-band Sessions built from the
+// SAME key that will both call Seal under CounterNonce=true (a bidirectional
+// channel) MUST pass responder=false on exactly one side and responder=true on
+// the other, so their counter-mode nonce spaces are partitioned and cannot
+// collide (see SessionConfig.CounterNonce). NewSessionFromKey and
+// NewSessionFromKeyWithSuite are the initiator-equivalent (responder=false)
+// convenience forms and are byte-for-byte unaffected by this addition.
+func NewSessionFromKeyWithRole(key []byte, counter bool, suite AEADSuite, responder bool) (*Session, error) {
+	role := roleInitiator
+	if responder {
+		role = roleResponder
+	}
+	return newSession(key, counter, suite, role)
 }
 
 // SessionKey returns nothing sensitive; it exists only so tests can confirm two
@@ -282,6 +343,13 @@ func (s *Session) nextNonce() ([NonceSize]byte, error) {
 		// Reserve the all-zero nonce for SessionKey fingerprinting: counters
 		// start at 1.
 		ctr++
+		// Partition the nonce space by handshake role (nonce[0]) so that an
+		// initiator's and a responder's counter-mode nonces can NEVER collide
+		// even though both sides derive the identical AEAD key. Bytes[1:4]
+		// stay zero and the full 64-bit counter in bytes[4:12] is untouched by
+		// this partitioning, so per-role sequences remain strictly increasing
+		// and the counter's full range is preserved on each side.
+		nonce[0] = byte(s.role)
 		// Big-endian counter in the trailing 8 bytes.
 		nonce[4] = byte(ctr >> 56)
 		nonce[5] = byte(ctr >> 48)

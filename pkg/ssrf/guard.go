@@ -140,6 +140,18 @@ func checkIP(ip net.IP, cfg Config) error {
 	if ip.IsUnspecified() {
 		return fmt.Errorf("%w: unspecified address %s", ErrBlocked, ip)
 	}
+	// RFC 6052 NAT64 "Well-Known Prefix" (64:ff9b::/96) embeds an IPv4 address
+	// in the low 32 bits of an IPv6 literal. On any NAT64/DNS64-enabled network
+	// (common on IPv6-only corporate/carrier/cloud networks) the OS resolver
+	// and dialer route such a literal transparently to the embedded IPv4
+	// destination, so a literal that unwraps to loopback/private/link-local/
+	// metadata must be judged by the SAME rules as its embedded address, not
+	// treated as an ordinary global-unicast IPv6 address. This mirrors the
+	// alternate-encoding handling ParseIntegerIP/ParseShortDottedIP/
+	// ParseInetAtonIP already do for IPv4 literals.
+	if embedded := unwrapNAT64(ip); embedded != nil {
+		return checkIP(embedded, cfg)
+	}
 	if cfg.AllowPrivateNetworks {
 		return nil
 	}
@@ -167,6 +179,34 @@ func isIPv6UniqueLocal(ip net.IP) bool {
 		return false
 	}
 	return v6[0]&0xfe == 0xfc
+}
+
+// nat64WellKnownPrefix is the RFC 6052 §2.1 "Well-Known Prefix" 64:ff9b::/96
+// used by NAT64/DNS64 to embed an IPv4 address in the low 32 bits of an IPv6
+// address.
+var nat64WellKnownPrefix = []byte{0x00, 0x64, 0xff, 0x9b, 0, 0, 0, 0, 0, 0, 0, 0}
+
+// unwrapNAT64 returns the embedded IPv4 address if ip lies in the RFC 6052
+// NAT64 Well-Known Prefix range 64:ff9b::/96, or nil if ip is not a NAT64
+// literal (including any ordinary IPv4 or IPv4-mapped-IPv6 address, which
+// ip.To4() already resolves without this helper). Only the well-known prefix
+// is decoded generically here — locally-configured Network-Specific Prefixes
+// (RFC 6052 §3.1) are, by definition, not universally known and are out of
+// scope for a project-agnostic guard.
+func unwrapNAT64(ip net.IP) net.IP {
+	if ip.To4() != nil {
+		return nil // ordinary IPv4 or IPv4-mapped-IPv6; not a NAT64 literal
+	}
+	v6 := ip.To16()
+	if v6 == nil || len(v6) != net.IPv6len {
+		return nil
+	}
+	for i, b := range nat64WellKnownPrefix {
+		if v6[i] != b {
+			return nil
+		}
+	}
+	return net.IPv4(v6[12], v6[13], v6[14], v6[15])
 }
 
 // ParseIntegerIP treats an all-digit host as a 32-bit IPv4 value
