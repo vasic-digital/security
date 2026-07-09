@@ -204,7 +204,7 @@ func TestRedactor_NoMatches(t *testing.T) {
 
 func TestRedactor_MultiplePII(t *testing.T) {
 	config := &Config{
-		EnabledDetectors: []Type{TypeEmail, TypeIPAddress},
+		EnabledDetectors:  []Type{TypeEmail, TypeIPAddress},
 		RedactionStrategy: StrategyRemove,
 		MaskChar:          '*',
 	}

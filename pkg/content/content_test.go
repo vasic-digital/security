@@ -42,7 +42,7 @@ func TestLengthFilter(t *testing.T) {
 func TestPatternFilter(t *testing.T) {
 	patterns := map[string]string{
 		"sql_injection": `(?i)(DROP\s+TABLE|DELETE\s+FROM)`,
-		"script_tag":   `(?i)<script`,
+		"script_tag":    `(?i)<script`,
 	}
 	f, err := NewPatternFilter(patterns)
 	require.NoError(t, err)

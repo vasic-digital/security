@@ -39,13 +39,13 @@ type Scanner interface {
 
 // Report aggregates findings from one or more scanners.
 type Report struct {
-	Findings    []Finding     `json:"findings"`
-	TotalCount  int           `json:"total_count"`
+	Findings    []Finding        `json:"findings"`
+	TotalCount  int              `json:"total_count"`
 	BySeverity  map[Severity]int `json:"by_severity"`
-	ScannerName string        `json:"scanner_name,omitempty"`
-	Target      string        `json:"target,omitempty"`
-	Duration    time.Duration `json:"duration"`
-	ScannedAt   time.Time     `json:"scanned_at"`
+	ScannerName string           `json:"scanner_name,omitempty"`
+	Target      string           `json:"target,omitempty"`
+	Duration    time.Duration    `json:"duration"`
+	ScannedAt   time.Time        `json:"scanned_at"`
 }
 
 // NewReport creates a new Report from a set of findings.

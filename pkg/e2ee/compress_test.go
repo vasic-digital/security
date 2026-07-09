@@ -137,7 +137,7 @@ func TestCompressPayload_Transparency(t *testing.T) {
 		{},
 		[]byte("x"),
 		[]byte("{}"),
-		bytes.Repeat([]byte("ab"), 4096),                    // highly compressible
+		bytes.Repeat([]byte("ab"), 4096), // highly compressible
 		[]byte(`{"k":"` + strings.Repeat("v", 10000) + `"}`), // compressible JSON
 	}
 	for i, in := range inputs {

@@ -54,8 +54,8 @@ func TestPatternFilter_XSSPayloads(t *testing.T) {
 	t.Parallel()
 
 	patterns := map[string]string{
-		"script_tag":    `(?i)<\s*script[^>]*>`,
-		"on_event":      `(?i)\bon\w+\s*=`,
+		"script_tag":     `(?i)<\s*script[^>]*>`,
+		"on_event":       `(?i)\bon\w+\s*=`,
 		"javascript_uri": `(?i)javascript\s*:`,
 	}
 

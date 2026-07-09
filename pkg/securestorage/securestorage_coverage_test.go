@@ -374,7 +374,7 @@ func TestCopyMap_Isolation(t *testing.T) {
 	m := map[string]string{"a": "1", "b": "2"}
 	result := copyMap(m)
 	result["c"] = "3"
-	assert.Len(t, m, 2)     // Original unchanged
+	assert.Len(t, m, 2)      // Original unchanged
 	assert.Len(t, result, 3) // Copy has new entry
 }
 

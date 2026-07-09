@@ -15,7 +15,7 @@ import (
 
 func TestGuardrails_XSSInjection_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	patterns, err := guardrails.NewForbiddenPatternsRule(map[string]string{
@@ -49,7 +49,7 @@ func TestGuardrails_XSSInjection_Security(t *testing.T) {
 
 func TestGuardrails_SQLInjection_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	patterns, err := guardrails.NewForbiddenPatternsRule(map[string]string{
@@ -78,7 +78,7 @@ func TestGuardrails_SQLInjection_Security(t *testing.T) {
 
 func TestPIIRedactor_NilAndEmptyInput_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	redactor := pii.NewRedactor(pii.DefaultConfig())
@@ -96,7 +96,7 @@ func TestPIIRedactor_NilAndEmptyInput_Security(t *testing.T) {
 
 func TestPIIRedactor_NilConfig_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Passing nil config should use defaults, not panic
@@ -108,7 +108,7 @@ func TestPIIRedactor_NilConfig_Security(t *testing.T) {
 
 func TestContentFilter_LargeInput_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	filter := content.NewLengthFilter(0, 1000)
@@ -123,7 +123,7 @@ func TestContentFilter_LargeInput_Security(t *testing.T) {
 
 func TestContentFilter_EmptyKeywordList_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Empty keyword list should not block anything
@@ -135,7 +135,7 @@ func TestContentFilter_EmptyKeywordList_Security(t *testing.T) {
 
 func TestPatternFilter_InvalidRegex_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Invalid regex should return error, not panic
@@ -147,7 +147,7 @@ func TestPatternFilter_InvalidRegex_Security(t *testing.T) {
 
 func TestPolicyEnforcer_NilPolicy_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	enforcer := policy.NewEnforcer()
@@ -163,7 +163,7 @@ func TestPolicyEnforcer_NilPolicy_Security(t *testing.T) {
 
 func TestPolicyEnforcer_NonexistentPolicy_Security(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping security test in short mode") // SKIP-OK: #short-mode
 	}
 
 	enforcer := policy.NewEnforcer()
