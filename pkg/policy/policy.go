@@ -151,7 +151,11 @@ func (e *Enforcer) Evaluate(
 		return nil, fmt.Errorf("policy %q not found", policyName)
 	}
 
-	return evaluatePolicy(ctx, policy, evalCtx)
+	// Use the (possibly injected) evaluator, mirroring EvaluateAll. Calling the
+	// package-level evaluatePolicy directly here silently ignored an evaluator
+	// installed via SetPolicyEvaluator, so a custom/stricter decision function
+	// was bypassed on the single-policy path.
+	return e.policyEvaluator(ctx, policy, evalCtx)
 }
 
 // EvaluateAll evaluates all loaded policies against the given context.
