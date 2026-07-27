@@ -16,7 +16,7 @@ import (
 
 func TestGuardrailsWithPIIRedaction_Integration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping integration test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Build a guardrail engine that checks content length and forbidden patterns
@@ -47,7 +47,7 @@ func TestGuardrailsWithPIIRedaction_Integration(t *testing.T) {
 
 func TestContentFilterWithPolicyEnforcement_Integration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping integration test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Set up content filtering chain
@@ -117,7 +117,7 @@ func TestContentFilterWithPolicyEnforcement_Integration(t *testing.T) {
 
 func TestScannerReportWithFilterBySeverity_Integration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping integration test in short mode") // SKIP-OK: #short-mode
 	}
 
 	findings := []scanner.Finding{
@@ -146,7 +146,7 @@ func TestScannerReportWithFilterBySeverity_Integration(t *testing.T) {
 
 func TestMergedScannerReports_Integration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping integration test in short mode") // SKIP-OK: #short-mode
 	}
 
 	report1 := scanner.NewReport(
@@ -174,7 +174,7 @@ func TestMergedScannerReports_Integration(t *testing.T) {
 
 func TestPIIDetectionAllTypes_Integration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping integration test in short mode") // SKIP-OK: #short-mode
 	}
 
 	redactor := pii.NewRedactor(pii.DefaultConfig())
@@ -196,7 +196,7 @@ func TestPIIDetectionAllTypes_Integration(t *testing.T) {
 
 func TestPolicyEvaluateAllMostRestrictive_Integration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping integration test in short mode") // SKIP-OK: #short-mode
 	}
 
 	enforcer := policy.NewEnforcer()

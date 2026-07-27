@@ -37,6 +37,9 @@ coverage.out
 
 reports/demos/
 
+# QA evidence (regenerable captures — §11.4.30 / §11.4.128(4))
+qa-results/
+
 # CONST-053 — round-300 additions
 *.log
 *.tmp

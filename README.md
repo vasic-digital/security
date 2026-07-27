@@ -1,8 +1,15 @@
 # Security
 
-**Revision:** 2 — round-300 deep-doc + Challenge enrichment (2026-05-19)
-**Last modified:** 2026-05-19
-**Maintainer:** vasic-digital/Security
+| Field | Value |
+|---|---|
+| Revision | 3 |
+| Created | 2026-02-03 |
+| Last modified | 2026-07-05 |
+| Status | active |
+| Test coverage | [docs/test-coverage.md](docs/test-coverage.md) |
+| Issues | docs/Issues.md (when present) |
+| Continuation | docs/CONTINUATION.md (when present) |
+
 **Documentation Map:**
 - `README.md` (this file) — module overview, anti-bluff guarantees, usage
 - `docs/test-coverage.md` — symbol → test ledger (round-300 added)

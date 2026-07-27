@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -211,23 +212,88 @@ func (r *Redactor) Detect(text string) []Match {
 }
 
 // Redact detects and redacts PII from text, returning the redacted text
-// and the matches that were found.
+// and the matches that were applied.
 func (r *Redactor) Redact(text string) (string, []Match) {
 	matches := r.Detect(text)
 	if len(matches) == 0 {
 		return text, nil
 	}
 
-	// Sort matches by start position descending to avoid offset issues
-	sortMatchesDescending(matches)
+	// Coalesce overlapping detections into deterministic, non-overlapping spans
+	// before splicing. Detect() aggregates results from multiple detectors in Go
+	// map-iteration order, and those spans can OVERLAP (e.g. a credit-card number
+	// whose leading digits also match the phone pattern). Applying overlapping
+	// spans with the descending-start splice below corrupts offsets and can
+	// splice ORIGINAL PII bytes back into the "redacted" output, with the exact
+	// result depending on nondeterministic map order. Resolving overlaps first
+	// makes redaction deterministic and guarantees every detected byte is
+	// covered by exactly one replacement.
+	spans := resolveOverlaps(matches)
+
+	// Apply spans from the highest start downward so an earlier splice never
+	// invalidates the offsets of a later one.
+	sort.Slice(spans, func(i, j int) bool { return spans[i].start > spans[j].start })
 
 	result := text
-	for _, m := range matches {
-		replacement := r.redactValue(m)
-		result = result[:m.Start] + replacement + result[m.End:]
+	applied := make([]Match, 0, len(spans))
+	for _, sp := range spans {
+		rep := sp.rep
+		replacement := r.redactValue(rep)
+		result = result[:sp.start] + replacement + result[sp.end:]
+		// Report the span actually redacted (union offsets, representative type).
+		rep.Start, rep.End = sp.start, sp.end
+		applied = append(applied, rep)
 	}
 
-	return result, matches
+	return result, applied
+}
+
+// mergedSpan is a maximal non-overlapping region to redact, together with the
+// representative match whose type/value drives the replacement text.
+type mergedSpan struct {
+	start, end int
+	rep        Match
+	repLen     int // representative match's own length (for longest-wins selection)
+}
+
+// resolveOverlaps coalesces detector matches into deterministic, non-overlapping
+// spans. Matches are ordered by (Start asc, End desc, Type asc) so the result
+// never depends on detector map-iteration order; a linear sweep then merges any
+// span that overlaps the previous one into a single union span, keeping the
+// LONGEST contributing match as the representative (ties keep the earlier one).
+// Merging (rather than dropping) overlapping matches guarantees no detected byte
+// is left un-redacted even when neither match contains the other.
+func resolveOverlaps(matches []Match) []mergedSpan {
+	sorted := make([]Match, len(matches))
+	copy(sorted, matches)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Start != sorted[j].Start {
+			return sorted[i].Start < sorted[j].Start
+		}
+		if sorted[i].End != sorted[j].End {
+			return sorted[i].End > sorted[j].End
+		}
+		return sorted[i].Type < sorted[j].Type
+	})
+
+	spans := make([]mergedSpan, 0, len(sorted))
+	for _, m := range sorted {
+		mLen := m.End - m.Start
+		n := len(spans)
+		if n == 0 || m.Start >= spans[n-1].end {
+			spans = append(spans, mergedSpan{start: m.Start, end: m.End, rep: m, repLen: mLen})
+			continue
+		}
+		s := &spans[n-1]
+		if m.End > s.end {
+			s.end = m.End // extend to the union
+		}
+		if mLen > s.repLen {
+			s.rep = m // longest match drives the replacement
+			s.repLen = mLen
+		}
+	}
+	return spans
 }
 
 func (r *Redactor) redactValue(m Match) string {
@@ -295,14 +361,6 @@ func maskStr(s string, keepFirst int, maskChar rune) string {
 		return strings.Repeat(string(maskChar), len(s))
 	}
 	return s[:keepFirst] + strings.Repeat(string(maskChar), len(s)-keepFirst)
-}
-
-func sortMatchesDescending(matches []Match) {
-	for i := 1; i < len(matches); i++ {
-		for j := i; j > 0 && matches[j].Start > matches[j-1].Start; j-- {
-			matches[j], matches[j-1] = matches[j-1], matches[j]
-		}
-	}
 }
 
 func validateLuhn(number string) bool {

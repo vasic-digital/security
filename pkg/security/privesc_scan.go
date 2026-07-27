@@ -22,6 +22,15 @@ type PrivEscCheck struct {
 	Description string
 	Passed      bool
 	Details     string
+	// Skipped is true when the check could not obtain the data it needs (an
+	// unreadable /proc entry, an inaccessible scan directory, etc.) and is
+	// therefore reporting an INCONCLUSIVE result, not a genuine clean bill of
+	// health. Skipped==true always pairs with Passed==false: a caller that
+	// only inspects Passed (ignoring Skipped) sees a signal demanding
+	// attention rather than a false all-clear. This is load-bearing for the
+	// anti-bluff guarantee that an inability to check never silently reads as
+	// "no risk found".
+	Skipped bool
 }
 
 // tr translates the messageID via the package-level translator.
@@ -46,6 +55,20 @@ func trf(id, fallbackFmt string, n int) string {
 	return s
 }
 
+// The following are the real proc/scan paths every check reads by default.
+// They are package-level VARIABLES (not constants) purely so tests can point
+// a check at a deliberately-unreadable path and deterministically exercise the
+// "cannot determine, must not silently PASS" branch without depending on
+// host-specific /proc visibility (e.g. hidepid= mount options, container
+// sandboxing) — production callers never need to touch these.
+var (
+	procOnePidStatusPath = "/proc/1/status"
+	procSelfStatusPath   = "/proc/self/status"
+	procSelfCgroupPath   = "/proc/self/cgroup"
+	procOnePidCgroupPath = "/proc/1/cgroup"
+	suidScanPaths        = []string{"/bin", "/usr/bin", "/sbin", "/usr/sbin"}
+)
+
 // ScanPrivilegeEscalation checks common container and host privilege escalation vectors.
 func ScanPrivilegeEscalation() []PrivEscCheck {
 	var checks []PrivEscCheck
@@ -61,12 +84,13 @@ func ScanPrivilegeEscalation() []PrivEscCheck {
 
 func CheckPrivilegedContainer() PrivEscCheck {
 	// Check if /proc/1/status exists and read capabilities
-	data, err := os.ReadFile("/proc/1/status")
+	data, err := os.ReadFile(procOnePidStatusPath)
 	if err != nil {
 		return PrivEscCheck{
 			Name:        "PrivilegedContainer",
 			Description: tr(i18n.MsgPrivescPrivContainerDesc),
-			Passed:      true,
+			Passed:      false,
+			Skipped:     true,
 			Details:     tr(i18n.MsgPrivescPrivContainerUnknownProcStatus),
 		}
 	}
@@ -118,12 +142,13 @@ func CheckWritableRootFS() PrivEscCheck {
 
 func CheckDangerousCapabilities() PrivEscCheck {
 	// Check for CAP_SYS_ADMIN which enables many escalation paths
-	data, err := os.ReadFile("/proc/self/status")
+	data, err := os.ReadFile(procSelfStatusPath)
 	if err != nil {
 		return PrivEscCheck{
 			Name:        "DangerousCapabilities",
 			Description: tr(i18n.MsgPrivescDangerousCapsDesc),
-			Passed:      true,
+			Passed:      false,
+			Skipped:     true,
 			Details:     tr(i18n.MsgPrivescDangerousCapsUnknownProcStatus),
 		}
 	}
@@ -157,14 +182,15 @@ func CheckDangerousCapabilities() PrivEscCheck {
 
 func CheckHostNamespace() PrivEscCheck {
 	// Compare /proc/self/cgroup with /proc/1/cgroup to detect host PID namespace
-	selfCgroup, err1 := os.ReadFile("/proc/self/cgroup")
-	rootCgroup, err2 := os.ReadFile("/proc/1/cgroup")
+	selfCgroup, err1 := os.ReadFile(procSelfCgroupPath)
+	rootCgroup, err2 := os.ReadFile(procOnePidCgroupPath)
 
 	if err1 != nil || err2 != nil {
 		return PrivEscCheck{
 			Name:        "HostNamespace",
 			Description: tr(i18n.MsgPrivescHostNamespaceDesc),
-			Passed:      true,
+			Passed:      false,
+			Skipped:     true,
 			Details:     tr(i18n.MsgPrivescHostNamespaceUnknownCgroup),
 		}
 	}
@@ -188,14 +214,15 @@ func CheckHostNamespace() PrivEscCheck {
 
 func CheckSUIDBinaries() PrivEscCheck {
 	// Check common paths for unexpected SUID binaries
-	paths := []string{"/bin", "/usr/bin", "/sbin", "/usr/sbin"}
 	found := []string{}
+	anyReadable := false
 
-	for _, dir := range paths {
+	for _, dir := range suidScanPaths {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
+		anyReadable = true
 		for _, entry := range entries {
 			info, err := entry.Info()
 			if err != nil {
@@ -204,6 +231,20 @@ func CheckSUIDBinaries() PrivEscCheck {
 			if info.Mode()&os.ModeSetuid != 0 {
 				found = append(found, entry.Name())
 			}
+		}
+	}
+
+	// If NONE of the configured scan paths could be read, "found" is
+	// necessarily empty regardless of the real system state -- reporting
+	// Passed=true here would be a silent PASS on zero actual evidence. Report
+	// an explicit, non-passing skip instead (see PrivEscCheck.Skipped).
+	if !anyReadable {
+		return PrivEscCheck{
+			Name:        "SUIDBinaries",
+			Description: tr(i18n.MsgPrivescSUIDDesc),
+			Passed:      false,
+			Skipped:     true,
+			Details:     tr(i18n.MsgPrivescSUIDUnknownPaths),
 		}
 	}
 

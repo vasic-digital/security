@@ -15,11 +15,11 @@ func TestGuardrails_SQLInjectionPayloads(t *testing.T) {
 	t.Parallel()
 
 	patterns := map[string]string{
-		"sql_union":       `(?i)\bUNION\b.*\bSELECT\b`,
-		"sql_drop":        `(?i)\bDROP\b.*\bTABLE\b`,
-		"sql_or_1_eq_1":   `(?i)\bOR\b\s+['"]?1['"]?\s*=\s*['"]?1['"]?`,
-		"sql_semicolon":   `;\s*(?i)(DROP|DELETE|INSERT|UPDATE|ALTER)\b`,
-		"sql_comment":     `--\s*$`,
+		"sql_union":        `(?i)\bUNION\b.*\bSELECT\b`,
+		"sql_drop":         `(?i)\bDROP\b.*\bTABLE\b`,
+		"sql_or_1_eq_1":    `(?i)\bOR\b\s+['"]?1['"]?\s*=\s*['"]?1['"]?`,
+		"sql_semicolon":    `;\s*(?i)(DROP|DELETE|INSERT|UPDATE|ALTER)\b`,
+		"sql_comment":      `--\s*$`,
 		"sql_single_quote": `'\s*(?i)(OR|AND)\s+`,
 	}
 
@@ -62,10 +62,10 @@ func TestGuardrails_XSSPayloads(t *testing.T) {
 	t.Parallel()
 
 	patterns := map[string]string{
-		"script_tag":    `(?i)<\s*script[^>]*>`,
-		"on_event":      `(?i)\bon\w+\s*=`,
+		"script_tag":     `(?i)<\s*script[^>]*>`,
+		"on_event":       `(?i)\bon\w+\s*=`,
 		"javascript_uri": `(?i)javascript\s*:`,
-		"img_onerror":   `(?i)<\s*img[^>]+onerror\s*=`,
+		"img_onerror":    `(?i)<\s*img[^>]+onerror\s*=`,
 	}
 
 	rule, err := guardrails.NewForbiddenPatternsRule(patterns)
@@ -108,7 +108,7 @@ func TestGuardrails_PathTraversalStrings(t *testing.T) {
 	t.Parallel()
 
 	patterns := map[string]string{
-		"dot_dot_slash": `\.\./`,
+		"dot_dot_slash":     `\.\./`,
 		"dot_dot_backslash": `\.\.\\`,
 		"encoded_traversal": `%2e%2e[/\\]`,
 	}

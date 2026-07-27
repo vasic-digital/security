@@ -21,7 +21,7 @@ import (
 
 func TestFullSecurityPipeline_E2E(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping e2e test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Step 1: Content filtering — reject dangerous inputs
@@ -102,7 +102,7 @@ func TestFullSecurityPipeline_E2E(t *testing.T) {
 
 func TestDangerousInputBlocked_E2E(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping e2e test in short mode") // SKIP-OK: #short-mode
 	}
 
 	chain := content.NewChainFilter(
@@ -125,7 +125,7 @@ func TestDangerousInputBlocked_E2E(t *testing.T) {
 
 func TestRedactionStrategies_E2E(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping e2e test in short mode") // SKIP-OK: #short-mode
 	}
 
 	input := "Email me at alice@example.org about the issue."
@@ -151,7 +151,7 @@ func TestRedactionStrategies_E2E(t *testing.T) {
 
 func TestScannerEndToEndWorkflow_E2E(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping e2e test in short mode") // SKIP-OK: #short-mode
 	}
 
 	// Create a mock scanner that implements the Scanner interface
@@ -185,7 +185,7 @@ func TestScannerEndToEndWorkflow_E2E(t *testing.T) {
 
 func TestGuardrailsStopOnFirstFailure_E2E(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping e2e test in short mode") // SKIP-OK: #short-mode
 	}
 
 	cfg := &guardrails.Config{
@@ -210,7 +210,7 @@ func TestGuardrailsStopOnFirstFailure_E2E(t *testing.T) {
 
 func TestPolicyOperators_E2E(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
+		t.Skip("skipping e2e test in short mode") // SKIP-OK: #short-mode
 	}
 
 	enforcer := policy.NewEnforcer()

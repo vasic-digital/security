@@ -136,7 +136,7 @@ func TestMaxLengthRule(t *testing.T) {
 func TestForbiddenPatternsRule(t *testing.T) {
 	patterns := map[string]string{
 		"sql_injection": `(?i)(DROP\s+TABLE|DELETE\s+FROM)`,
-		"xss":          `(?i)<script`,
+		"xss":           `(?i)<script`,
 	}
 	rule, err := NewForbiddenPatternsRule(patterns)
 	require.NoError(t, err)

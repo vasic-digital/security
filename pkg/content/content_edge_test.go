@@ -54,8 +54,8 @@ func TestPatternFilter_XSSPayloads(t *testing.T) {
 	t.Parallel()
 
 	patterns := map[string]string{
-		"script_tag":    `(?i)<\s*script[^>]*>`,
-		"on_event":      `(?i)\bon\w+\s*=`,
+		"script_tag":     `(?i)<\s*script[^>]*>`,
+		"on_event":       `(?i)\bon\w+\s*=`,
 		"javascript_uri": `(?i)javascript\s*:`,
 	}
 
@@ -331,6 +331,35 @@ func TestKeywordFilter_UnicodeKeywords(t *testing.T) {
 	result, err = f.Check("safe content")
 	require.NoError(t, err)
 	assert.True(t, result.Allowed)
+}
+
+// TestKeywordFilter_StrayEmptyKeywordDoesNotBlockEverything proves that a
+// single empty-string entry in the keyword list (e.g. from a trailing
+// separator or a blank line when the list is built by splitting a
+// config/CSV/YAML value) does not silently turn the filter into an
+// unconditional block-all.
+//
+// Defect (RED): Check() does `strings.Contains(checkInput, kw)` for every
+// stored keyword. strings.Contains(s, "") is true for every s (the empty
+// string is a substring of everything), so a keyword list containing one
+// stray "" rejects every input regardless of content -- a real, plausible
+// misconfiguration (e.g. `strings.Split(cfg, ",")` on "badword," yields
+// []string{"badword", ""}) silently disables the guardrail for all traffic
+// rather than blocking only the intended keyword.
+func TestKeywordFilter_StrayEmptyKeywordDoesNotBlockEverything(t *testing.T) {
+	t.Parallel()
+
+	f := content.NewKeywordFilter([]string{"badword", ""}, false)
+
+	result, err := f.Check("this is completely clean content")
+	require.NoError(t, err)
+	assert.True(t, result.Allowed,
+		"a stray empty keyword must not cause every input to be rejected")
+
+	// The real keyword must still be enforced.
+	result, err = f.Check("this contains badword right here")
+	require.NoError(t, err)
+	assert.False(t, result.Allowed, "the real keyword must still be blocked")
 }
 
 // --- PatternFilter Edge Cases ---

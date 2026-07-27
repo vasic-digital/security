@@ -150,15 +150,26 @@ type KeywordFilter struct {
 }
 
 // NewKeywordFilter creates a new KeywordFilter.
+//
+// Empty-string entries in keywords are skipped. strings.Contains(s, "") is
+// true for every s, so a stored empty keyword would make Check reject every
+// input unconditionally -- a real misconfiguration risk, since keyword lists
+// are commonly assembled by splitting a config/CSV/YAML value (e.g.
+// strings.Split("badword,", ",") yields []string{"badword", ""}). Silently
+// ignoring the empty entry preserves the caller's real keywords instead of
+// turning the filter into an unconditional block-all.
 func NewKeywordFilter(
 	keywords []string, caseSensitive bool,
 ) *KeywordFilter {
-	stored := make([]string, len(keywords))
-	for i, kw := range keywords {
+	stored := make([]string, 0, len(keywords))
+	for _, kw := range keywords {
+		if kw == "" {
+			continue
+		}
 		if caseSensitive {
-			stored[i] = kw
+			stored = append(stored, kw)
 		} else {
-			stored[i] = strings.ToLower(kw)
+			stored = append(stored, strings.ToLower(kw))
 		}
 	}
 	return &KeywordFilter{
