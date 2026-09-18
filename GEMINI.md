@@ -1,13 +1,13 @@
-# QWEN.md - Security Module
+# GEMINI.md - Security Module
 
-## INHERITED FROM constitution/QWEN.md
+## INHERITED FROM constitution/GEMINI.md
 
-All rules in `constitution/QWEN.md` (and the `constitution/Constitution.md` it references) apply unconditionally. This file's rules below extend them — they MUST NOT weaken any inherited rule. Use `constitution/find_constitution.sh` from the parent project root to resolve the absolute path of the submodule from any nested location.
+All rules in `constitution/GEMINI.md` (and the `constitution/Constitution.md` it references) apply unconditionally. This file's rules below extend them — they MUST NOT weaken any inherited rule. Use `constitution/find_constitution.sh` from the parent project root to resolve the absolute path of the submodule from any nested location.
 
 ## INHERITED FROM the Helix Constitution
 
 This module is governed by the Helix Constitution. All rules in the
-constitution's `QWEN.md` and the `Constitution.md` it references apply
+constitution's `GEMINI.md` and the `Constitution.md` it references apply
 unconditionally. Locate the constitution from any nested depth via its
 `find_constitution.sh` helper — do NOT hardcode a path (this module stays
 fully decoupled and project-agnostic per §11.4.28).

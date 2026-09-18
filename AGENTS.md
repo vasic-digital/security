@@ -1,4 +1,4 @@
-# AGENTS.md - Security Module Multi-Agent Coordination Guide
+# AGENTS.md - Security Module
 
 ## INHERITED FROM constitution/AGENTS.md
 
@@ -14,14 +14,32 @@ fully decoupled and project-agnostic per §11.4.28).
 
 Canonical reference: https://github.com/HelixDevelopment/HelixConstitution
 
+## Definition of Done
+
+This module inherits the consuming project's universal Definition of Done. In
+one line: **no task is done without pasted output from a real run of the real
+system in the same session as the change.** Coverage and green suites are not
+evidence.
+
+### Acceptance demo for this module
+
+```bash
+# Guardrails + PII detection/redaction over real sensitive-string inputs
+cd Security && GOMAXPROCS=2 nice -n 19 go test -count=1 -race -v ./pkg/pii/... ./pkg/guardrails/...
+```
+Expect: PASS; exercises `pii.NewRedactor`, `guardrails.NewEngine`, `content.NewChainFilter`, `policy.NewEnforcer` per `Security/README.md`. For the adversarial suite, see `RedTeam/` and `make test-redteam-fixtures` at root.
+
 ## Module Overview
 
-`digital.vasic.security` is a standalone, reusable Go security module (Go 1.24+) providing five independent packages for content guardrails, PII detection and redaction, content filtering, policy enforcement, and vulnerability scanning. The module has zero dependencies on any consuming application and only depends on `github.com/stretchr/testify` for testing.
+`digital.vasic.security` is a standalone, reusable Go security module (Go
+1.24+) providing five independent packages for content guardrails, PII
+detection and redaction, content filtering, policy enforcement, and
+vulnerability scanning. The module has zero dependencies on any consuming
+application.
 
 ## Package Responsibilities
 
 ### pkg/guardrails
-- **Owner**: Content Safety Agent
 - **Responsibility**: Configurable content guardrail engine with rule-based validation.
 - **Key types**: `Engine`, `Rule` (interface), `Config`, `RuleConfig`, `Result`, `RuleResult`, `Severity`
 - **Built-in rules**: `MaxLengthRule`, `ForbiddenPatternsRule`, `RequireFormatRule`
@@ -29,7 +47,6 @@ Canonical reference: https://github.com/HelixDevelopment/HelixConstitution
 - **Key file**: `pkg/guardrails/guardrails.go`
 
 ### pkg/pii
-- **Owner**: Data Privacy Agent
 - **Responsibility**: PII detection and redaction with configurable detectors and redaction strategies.
 - **Key types**: `Redactor`, `Detector` (interface), `Config`, `Match`, `Type`, `RedactionStrategy`
 - **Built-in detectors**: `EmailDetector`, `PhoneDetector`, `SSNDetector`, `CreditCardDetector`, `IPAddressDetector`
@@ -38,14 +55,12 @@ Canonical reference: https://github.com/HelixDevelopment/HelixConstitution
 - **Key file**: `pkg/pii/pii.go`
 
 ### pkg/content
-- **Owner**: Content Filtering Agent
 - **Responsibility**: Composable content filter chains for input validation.
 - **Key types**: `ChainFilter`, `Filter` (interface), `FilterResult`, `LengthFilter`, `PatternFilter`, `KeywordFilter`
-- **Pattern**: Chain of Responsibility -- content must pass all filters sequentially.
+- **Pattern**: Chain of Responsibility — content must pass all filters sequentially.
 - **Key file**: `pkg/content/content.go`
 
 ### pkg/policy
-- **Owner**: Policy Enforcement Agent
 - **Responsibility**: Rule-based policy evaluation with conditions, operators, and decisions.
 - **Key types**: `Enforcer`, `Policy`, `Rule`, `Condition`, `EvaluationContext`, `EvaluationResult`, `Decision`, `Operator`
 - **Decisions**: `Allow`, `Deny`, `Audit`
@@ -55,7 +70,6 @@ Canonical reference: https://github.com/HelixDevelopment/HelixConstitution
 - **Key file**: `pkg/policy/policy.go`
 
 ### pkg/scanner
-- **Owner**: Vulnerability Scanning Agent
 - **Responsibility**: Vulnerability scanning interface with findings aggregation and reporting.
 - **Key types**: `Scanner` (interface), `Finding`, `Report`, `Severity`
 - **Report features**: Severity breakdown, filtering, merging, summary generation
@@ -70,11 +84,11 @@ Each package is fully self-contained with no cross-package imports. Agents worki
 ### Integration Points
 When an integrating application combines these packages, coordination follows this order:
 
-1. **Content Filtering** (`content`) -- first-pass validation of raw input (length, patterns, keywords)
-2. **PII Detection** (`pii`) -- detect and redact sensitive data before further processing
-3. **Guardrails** (`guardrails`) -- validate processed content against domain-specific rules
-4. **Policy Enforcement** (`policy`) -- evaluate access control and behavioral policies
-5. **Vulnerability Scanning** (`scanner`) -- scan artifacts for security vulnerabilities
+1. **Content Filtering** (`content`) — first-pass validation of raw input (length, patterns, keywords)
+2. **PII Detection** (`pii`) — detect and redact sensitive data before further processing
+3. **Guardrails** (`guardrails`) — validate processed content against domain-specific rules
+4. **Policy Enforcement** (`policy`) — evaluate access control and behavioral policies
+5. **Vulnerability Scanning** (`scanner`) — scan artifacts for security vulnerabilities
 
 ### Work Distribution Guidelines
 - **Adding a new built-in rule/filter/detector**: Work within the single relevant package. No cross-package changes needed.
@@ -82,25 +96,7 @@ When an integrating application combines these packages, coordination follows th
 - **Modifying an interface**: Coordinate with all agents that may implement or consume that interface. The interfaces are `Rule`, `Detector`, `Filter`, `Scanner`.
 - **Updating shared patterns** (e.g., severity levels): Both `guardrails` and `scanner` define their own `Severity` type independently. Changes to one do not affect the other.
 
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `go.mod` | Module definition (`digital.vasic.security`, Go 1.24) |
-| `CLAUDE.md` | AI assistant instructions |
-| `README.md` | Project overview |
-| `pkg/guardrails/guardrails.go` | Guardrail engine, rules, config |
-| `pkg/guardrails/guardrails_test.go` | Guardrail tests (11 test functions) |
-| `pkg/pii/pii.go` | PII detection, redaction, detectors |
-| `pkg/pii/pii_test.go` | PII tests (16 test functions) |
-| `pkg/content/content.go` | Content filters and chain |
-| `pkg/content/content_test.go` | Content filter tests (10 test functions) |
-| `pkg/policy/policy.go` | Policy enforcer, rules, conditions |
-| `pkg/policy/policy_test.go` | Policy tests (15 test functions) |
-| `pkg/scanner/scanner.go` | Scanner interface, report, findings |
-| `pkg/scanner/scanner_test.go` | Scanner tests (12 test functions) |
-
-## Test Commands
+## Build & Test
 
 ```bash
 # Run all tests with race detection
@@ -123,48 +119,75 @@ go test -v -run TestEngine_Check_WithRules ./pkg/guardrails/
 go vet ./...
 ```
 
+## Code Style
+
+- Standard Go conventions, `gofmt` formatting
+- Imports grouped: stdlib, third-party, internal
+- Table-driven tests with testify
+- Interfaces: small, focused, accept interfaces return structs
+- Errors: always check, wrap with `fmt.Errorf("...: %w", err)`
+
 ## Dependencies
 
 ### External
-- `github.com/stretchr/testify v1.10.0` -- test assertions and requirements (test-only)
-- `golang.org/x/crypto` -- audited crypto library; permitted for the ChaCha20-Poly1305 AEAD (`golang.org/x/crypto/chacha20poly1305`, RFC 8439) used by `pkg/e2ee` alongside stdlib AES-256-GCM. (Operator-authorized 2026-06-03 for HXC-1561, overriding the prior testify-only clause for this single audited crypto dependency.)
+- `github.com/stretchr/testify` — test assertions and requirements (test-only)
+- `golang.org/x/crypto` — audited crypto library; permitted for the ChaCha20-Poly1305 AEAD (`golang.org/x/crypto/chacha20poly1305`, RFC 8439) used by `pkg/e2ee` alongside stdlib AES-256-GCM. (Operator-authorized 2026-06-03 for HXC-1561, overriding the prior testify-only clause for this single audited crypto dependency.)
+- No other external dependencies
+- No dependency on any consuming application
 
 ### Indirect (via testify)
-- `github.com/davecgh/go-spew v1.1.1`
-- `github.com/pmezard/go-difflib v1.0.0`
-- `gopkg.in/yaml.v3 v3.0.1`
+- `github.com/davecgh/go-spew`
+- `github.com/pmezard/go-difflib`
+- `gopkg.in/yaml.v3`
 
 ### Standard Library Usage
-- `fmt` -- error formatting and string output
-- `regexp` -- pattern matching in guardrails, PII detection, content filtering
-- `sync` -- `RWMutex` for thread-safe engines (guardrails, policy)
-- `strings` -- string manipulation in PII masking, keyword filtering, condition evaluation
-- `crypto/sha256` -- PII hash redaction strategy
-- `encoding/hex` -- hex encoding for hash output
-- `context` -- context propagation in policy and scanner
-- `time` -- scan duration and timestamps in scanner reports
+- `fmt` — error formatting and string output
+- `regexp` — pattern matching in guardrails, PII detection, content filtering
+- `sync` — `RWMutex` for thread-safe engines (guardrails, policy)
+- `strings` — string manipulation in PII masking, keyword filtering, condition evaluation
+- `crypto/sha256` — PII hash redaction strategy
+- `encoding/hex` — hex encoding for hash output
+- `context` — context propagation in policy and scanner
+- `time` — scan duration and timestamps in scanner reports
+
+## Integration Seams
+
+| Direction | Sibling modules |
+|-----------|-----------------|
+| Upstream (this module imports) | none |
+| Downstream (these import this module) | HelixLLM, HelixQA |
+
+*Siblings* means other project-owned modules at the parent project's repo root. The root application and external systems are not listed here — the list above is intentionally scoped to module-to-module seams, because drift *between* sibling modules is where the "tests pass, product broken" class of bug most often lives.
 
 ### Integration with a consuming application
 This module has no dependency on any consuming application. A consuming application integrates it via `internal/security/` which wraps these packages with application-specific configuration. When working on this module, changes should never introduce imports from `dev.helix.agent` or any other external module besides testify.
 
-## Submodule Decoupling & Reusability — MANDATORY for ALL AI Agents
-
-**Applies to ALL CLI agents (Codex, Cursor, Gemini CLI, Copilot CLI,
-Claude Code, etc.) working in this repository.**
+## Submodule Decoupling & Reusability — MANDATORY
 
 This repository is **shared infrastructure** consumed by multiple
-independent consumer projects. The value of this repository depends
-on staying fully decoupled and reusable.
+independent consumer projects. Its specialized responsibility makes
+it reusable — and that reusability is destroyed the moment any
+consumer's specifics leak in.
 
-**Hard rules:**
+**Hard rules when editing anything in this repository:**
 
 - DO NOT hardcode any specific consumer project's name, platform
   list, paths, version strings, or release-naming conventions.
 - DO NOT import / reference any consumer-project namespace.
 - DO NOT embed consumer-project-specific governance, branding, or
-  rule numbering in `CONSTITUTION.md` / `CLAUDE.md` / `AGENTS.md`.
-- DO assume N ≥ 2 unrelated consumer projects exist.
+  rule numbering in this module's own governance carriers.
+- DO assume N ≥ 2 unrelated consumer projects exist, even if you
+  only know of one today.
 
 Cross-project rules MUST be phrased generically ("every consuming
 project's full platform matrix"), never with a specific consumer's
 matrix hardcoded.
+
+## Anti-Bluff — read first
+
+Tests and Challenges exist for exactly one purpose: to confirm a feature
+genuinely works for a real end user, end-to-end. A test that passes while the
+feature is broken is a bluff test and is forbidden. CI green is necessary,
+never sufficient. See this module's governance-carrier set (this file's
+siblings, one per supported CLI) and `CONSTITUTION.md` for the full
+anti-bluff mandate.
