@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# security_functionality_challenge.sh - Validates Security module core functionality
-# Checks guardrails engine, PII detection/redaction, content filtering, policy enforcement, scanner
+# security_functionality_challenge.sh - Validates that the Security module's core types are declared
+# STRUCTURAL ONLY: it greps pkg/{content,guardrails,pii,policy,scanner}/*.go for
+# their `type X struct|interface` declarations and checks each package has
+# non-test source. It does NOT exercise guardrails, PII redaction, filtering,
+# policy enforcement or scanning behaviour.
 #
 # Usage:
 #   bash challenges/scripts/security_functionality_challenge.sh                   # validate this module
 #   bash challenges/scripts/security_functionality_challenge.sh --prove-failure   # §1.1 paired proof
 #
 # THREE-VALUED, and a 2 is never a pass:
-#   0 = every assertion held, and the number of assertions that actually ran
-#       reached the recorded floor (FUNC_FLOOR)
-#   1 = a real finding — an assertion failed, or FEWER assertions ran than
-#       the floor (an assertion lost to an edit or an early exit)
+#   0 = every assertion held, and exactly FUNC_FLOOR assertions ran
+#   1 = a real finding — an assertion failed, or the number of assertions
+#       that ran differs from FUNC_FLOOR (fewer: an assertion lost to an edit
+#       or an early exit — the count is taken by an EXIT trap, so `exit 0`
+#       mid-file cannot skip it; more: an assertion added without raising
+#       FUNC_FLOOR)
 #   2 = COULD NOT DETERMINE — part of the source could not be read (an
 #       unreadable package directory or file), or an unknown argument.
 #       Precedence: 1 outranks 2 outranks 0.
@@ -20,13 +25,15 @@
 # call, which is what is counted; a run that reaches the end having made
 # fewer — an assertion deleted or commented out, a block skipped — is rc 1,
 # never a quiet pass over a smaller check. Adding an assertion means raising
-# FUNC_FLOOR in the same commit; there is no environment override.
+# FUNC_FLOOR in the same commit (the count is exact, see finish()); there is
+# no environment override.
 #
 # --prove-failure (§1.1 paired proof, VSC-371): copies this module (no .git)
 # into throw-away trees under $TMPDIR, plants a defect in each copy and runs
 # THIS file there — a clean copy must exit 0; a renamed guardrails Engine, a
-# renamed PII Redactor and a copy of this file with one assertion deleted
-# must exit 1; an unreadable package directory and an unknown argument must
+# renamed PII Redactor, a copy of this file with one assertion deleted, one
+# with an `exit 0` planted mid-file and one with an extra assertion must
+# exit 1; an unreadable package directory and an unknown argument must
 # exit 2. Exits 0 only when every case holds, 1 when any does not, 2 when the
 # proof itself cannot run (e.g. as root, where chmod 000 does not deny a read).
 
@@ -112,6 +119,22 @@ prove_failure() {
     fi
     expect "U2 unknown argument" 2 "$c0" "unknown argument" -- --no-such-flag
 
+
+    # M4: a planted `exit 0` after assertion S12 — an early exit is not a pass.
+    d=$(mkcopy m4) || { cannot "could not copy the module"; return 2; }
+    if grep -q '^verdict S12 ' "$d/$self_rel" && sed -i '/^verdict S12 /a exit 0' "$d/$self_rel"; then
+        expect "M4 a planted exit 0 after S12 (early exit)" 1 "$d" "below the floor"
+    else
+        P_UNDET=$((P_UNDET + 1)); echo "  UNDET M4: could not plant exit 0 in the copy of this file"
+    fi
+
+    # M5: one assertion more than FUNC_FLOOR records — the floor is an exact count.
+    d=$(mkcopy m5) || { cannot "could not copy the module"; return 2; }
+    if grep -q '^verdict S24 ' "$d/$self_rel" && sed -i '/^verdict S24 /p' "$d/$self_rel"; then
+        expect "M5 an extra assertion without raising FUNC_FLOOR" 1 "$d" "raise FUNC_FLOOR"
+    else
+        P_UNDET=$((P_UNDET + 1)); echo "  UNDET M5: could not duplicate assertion S24 in the copy of this file"
+    fi
     echo "prove-failure: ${P_PASS} passed, ${P_FAIL} failed, ${P_UNDET} undetermined"
     [ "$P_FAIL" -gt 0 ] && return 1
     [ "$P_UNDET" -gt 0 ] && return 2
@@ -138,6 +161,38 @@ EXECUTED=0
 pass()  { PASS=$((PASS+1));  TOTAL=$((TOTAL+1)); echo "  PASS: $1"; }
 fail()  { FAIL=$((FAIL+1));  TOTAL=$((TOTAL+1)); echo "  FAIL: $1"; }
 undet() { UNDET=$((UNDET+1)); TOTAL=$((TOTAL+1)); echo "  UNDETERMINED: $1"; }
+
+# SINGLE EXIT PATH (VSC-371 review): the floor and the verdict are evaluated
+# from this EXIT trap, not at the end of the file, so an `exit 0` anywhere
+# below, an unbound variable or any other early exit still reaches the count
+# — and an early exit is, by construction, a run that made fewer assertions
+# than FUNC_FLOOR (rc 1). The floor is an EXACT count: an assertion added
+# without raising FUNC_FLOOR is rc 1 too, so the recorded number cannot drift
+# from the file.
+finish() {
+    trap - EXIT
+    echo ""
+    echo "Test: Every assertion ran (exactly ${FUNC_FLOOR})"
+    if [ "$EXECUTED" -lt "$FUNC_FLOOR" ]; then
+        fail "executed ${EXECUTED} assertion(s), below the floor ${FUNC_FLOOR} — a partial run (an early exit, a deleted assertion) is not a pass"
+    elif [ "$EXECUTED" -gt "$FUNC_FLOOR" ]; then
+        fail "executed ${EXECUTED} assertion(s), more than FUNC_FLOOR=${FUNC_FLOOR} records — raise FUNC_FLOOR in the commit that adds an assertion"
+    else
+        pass "executed ${EXECUTED} assertion(s) (exactly FUNC_FLOOR=${FUNC_FLOOR})"
+    fi
+    echo ""
+    echo "=== Results: ${PASS}/${TOTAL} passed, ${FAIL} failed, ${UNDET} undetermined ==="
+    if [ "${FAIL}" -gt 0 ]; then
+        echo "=== VERDICT: FAIL (real finding) ==="
+        exit 1
+    elif [ "${UNDET}" -gt 0 ]; then
+        echo "=== VERDICT: UNDETERMINED — NOT a pass ==="
+        exit 2
+    fi
+    echo "=== VERDICT: PASS ==="
+    exit 0
+}
+trap finish EXIT
 
 # has_decl <pkg> <pattern>: grep -q over pkg/<pkg>/*.go (that directory only)
 #   0 match; 1 no match (a missing directory or one with no .go file is "no
@@ -293,24 +348,4 @@ for pkg in content guardrails pii policy scanner; do
 done
 verdict S24 "$rc" "All packages have non-test Go source files" "Package(s) with no non-test Go files:${lacking}"
 
-# EXECUTED-COUNT FLOOR (VSC-371): an assertion that did not run is not an
-# assertion that passed.
-echo ""
-echo "Test: Every assertion ran (floor ${FUNC_FLOOR})"
-if [ "$EXECUTED" -lt "$FUNC_FLOOR" ]; then
-    fail "executed ${EXECUTED} assertion(s), below the floor ${FUNC_FLOOR} — a partial run is not a pass"
-else
-    pass "executed ${EXECUTED} assertion(s) (floor ${FUNC_FLOOR})"
-fi
-
-echo ""
-echo "=== Results: ${PASS}/${TOTAL} passed, ${FAIL} failed, ${UNDET} undetermined ==="
-if [ "${FAIL}" -gt 0 ]; then
-    echo "=== VERDICT: FAIL (real finding) ==="
-    exit 1
-elif [ "${UNDET}" -gt 0 ]; then
-    echo "=== VERDICT: UNDETERMINED — NOT a pass ==="
-    exit 2
-fi
-echo "=== VERDICT: PASS ==="
-exit 0
+# The floor and the verdict are evaluated by finish() (EXIT trap above).

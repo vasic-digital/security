@@ -25,15 +25,25 @@
 # runner that ran nothing — is rc 1, even when executed == declared, because
 # declared shrinks with the source. Adding tests needs no edit here; REMOVING
 # tests on purpose means lowering UNIT_FLOOR in the same commit. There is
-# deliberately no environment override that lowers it.
+# deliberately no environment override that lowers it. The floor is a
+# MINIMUM, not an exact count: the exact population of every run is already
+# pinned by executed == declared (both read fresh each run), so an exact floor
+# would add nothing but an edit to this file for every new test.
+#
+# Counting rules: TestMain is not a test function and is not declared;
+# runnable Example functions are counted on neither side; a package result
+# replayed from the test cache `(cached)` is UNDETERMINED, never a pass (the
+# runs use -count=1, so this only fires if that flag is lost).
 #
 # --prove-failure (§1.1 paired proof, VSC-371): copies this module (no .git)
 # into throw-away trees under $TMPDIR, plants a defect in each copy and runs
-# THIS file there — a clean copy must exit 0; a planted failing test, a copy
+# THIS file there — a clean copy, and copies with a TestMain or a runnable
+# Example added to pkg/content, must exit 0; a planted failing test, a copy
 # whose eight pkg/ packages outside the five named below lose their tests and
 # a copy whose tests are all excluded by a build constraint must exit 1; a
 # runner that prints no result, an unusable toolchain, an unusable TMPDIR, an
-# explicit -short run and an unknown argument must exit 2. Exits 0 only when
+# explicit -short run and an unknown argument must exit 2 — and so must a
+# copy of this file with -count=1 deleted, re-run so the test cache replays. Exits 0 only when
 # every case holds, 1 when any does not, 2 when the proof itself cannot run.
 #
 # WHY THIS GATE CHANGED (measured 2026-10-15 at a992a21):
@@ -145,6 +155,29 @@ prove_failure() {
     expect "U4 explicit -short run" 2 "$c0" "UNDETERMINED" "SECURITY_UNIT_ALLOW_SHORT=1"
     expect "U5 unknown argument" 2 "$c0" "unknown argument" -- --no-such-flag
 
+
+    # C1/C2: TestMain is not a test function (never reported) and a runnable
+    # Example IS reported — neither may make a clean module UNDETERMINED.
+    d=$(mkcopy c1) || { cannot "could not copy the module"; return 2; }
+    printf 'package content\n\nimport (\n\t"os"\n\t"testing"\n)\n\nfunc TestMain(m *testing.M) { os.Exit(m.Run()) }\n' \
+        > "$d/pkg/content/zz_prove_main_test.go"
+    expect "C1 a TestMain in pkg/content is not counted as a test function" 0 "$d" "VERDICT: PASS"
+
+    d=$(mkcopy c2) || { cannot "could not copy the module"; return 2; }
+    printf 'package content\n\nimport "fmt"\n\nfunc Example_proveFailure() {\n\tfmt.Println("ok")\n\t// Output: ok\n}\n' \
+        > "$d/pkg/content/zz_prove_example_test.go"
+    expect "C2 a runnable Example in pkg/content is not counted as a test function" 0 "$d" "VERDICT: PASS"
+
+    # M4: -count=1 deleted from this file: a re-run replays the test cache,
+    # which is not a fresh execution.
+    d=$(mkcopy m4) || { cannot "could not copy the module"; return 2; }
+    if grep -q '^ *go test -count=1 -p' "$d/$self_rel" && sed -i 's/^\( *go test\) -count=1 -p/\1 -p/' "$d/$self_rel" \
+       && ! grep -q '^ *go test -count=1 -p' "$d/$self_rel"; then
+        ( cd "$d" && bash "$d/$self_rel" >/dev/null 2>&1 )   # warm the test cache
+        expect "M4 -count=1 deleted from this file, re-run replays cached results" 2 "$d" "cached"
+    else
+        P_UNDET=$((P_UNDET + 1)); echo "  UNDET M4: could not delete -count=1 from the copy of this file"
+    fi
     echo "prove-failure: ${P_PASS} passed, ${P_FAIL} failed, ${P_UNDET} undetermined"
     [ "$P_FAIL" -gt 0 ] && return 1
     [ "$P_UNDET" -gt 0 ] && return 2
@@ -252,13 +285,16 @@ fi
 # Declared population, read from source rather than from the runner, so
 # "executed" can be compared against something the runner did not produce.
 # Fuzz targets are counted too: `go test` runs their seed corpus and reports
-# them as top-level `--- PASS: FuzzX` lines.
-declared_raw=$(grep -rhcE '^func (Test|Fuzz)[A-Z_]' --include='*_test.go' "${MODULE_DIR}"); declared_rc=$?
+# them as top-level `--- PASS: FuzzX` lines. TestMain is NOT a test function
+# (the runner never reports it) and is excluded; Example functions are not
+# counted on either side (see run_suite), so a runnable Example cannot make a
+# clean module permanently UNDETERMINED.
+declared_raw=$(grep -rhE '^func (Test|Fuzz)[A-Z_]' --include='*_test.go' "${MODULE_DIR}"); declared_rc=$?
 if [ "$declared_rc" -ge 2 ]; then
     declared=0
     undet "the declared test population could not be read from source (grep rc ${declared_rc})"
 else
-    declared=$(printf '%s\n' "$declared_raw" | awk '{s+=$1} END{print s+0}')
+    declared=$(printf '%s\n' "$declared_raw" | grep -vE '^func TestMain\(' | grep -c '^func ')
 fi
 
 echo ""
@@ -280,9 +316,15 @@ run_suite() {
     # Top-level results only: `go test -v` indents subtest result lines, so a
     # column-0 match counts each test FUNCTION exactly once (measured
     # 2026-10-15: 388 PASS / 0 SKIP / 0 FAIL in full mode).
-    R_PASS=$(grep -c '^--- PASS:' "$log")
-    R_SKIP=$(grep -c '^--- SKIP:' "$log")
-    R_FAIL=$(grep -c '^--- FAIL:' "$log")
+    # Only Test/Fuzz functions are counted, matching the declared side: a
+    # runnable Example prints `--- PASS: ExampleX` too, but is not declared
+    # (a failing Example still fails the run through go test's rc).
+    R_PASS=$(grep -cE '^--- PASS: (Test|Fuzz)' "$log")
+    R_SKIP=$(grep -cE '^--- SKIP: (Test|Fuzz)' "$log")
+    R_FAIL=$(grep -cE '^--- FAIL: (Test|Fuzz)' "$log")
+    # `(cached)` package results are REPLAYED output, not an execution. With
+    # -count=1 they cannot occur; this guards the flag's removal.
+    R_CACHED=$(grep -cE '^ok[[:space:]].*\(cached\)' "$log")
     # Per-package result lines (`ok`, `FAIL`, `?  ... [no test files]`). A
     # run with none of them has told us nothing about what it executed: the
     # count is UNREADABLE, which is not the same thing as a count of zero.
@@ -311,7 +353,7 @@ trap 'rm -f "$LOG_PLAIN" "$LOG_RACE"' EXIT
 # Test 8: Unit tests pass
 echo "Test: Unit tests pass (full, -tags=${GOTEST_TAGS}, -count=1, -p ${GOTEST_P})"
 run_suite "$LOG_PLAIN"
-plain_rc=$R_RC; plain_pass=$R_PASS; plain_skip=$R_SKIP; plain_fail=$R_FAIL; plain_pkgs=$R_PKGS
+plain_rc=$R_RC; plain_pass=$R_PASS; plain_skip=$R_SKIP; plain_fail=$R_FAIL; plain_pkgs=$R_PKGS; plain_cached=$R_CACHED
 executed=$((plain_pass + plain_skip + plain_fail))
 plain_readable=1
 if [ "$plain_rc" -ne 0 ] || [ "$plain_fail" -gt 0 ]; then
@@ -321,6 +363,8 @@ if [ "$plain_rc" -ne 0 ] || [ "$plain_fail" -gt 0 ]; then
 elif [ "$plain_pkgs" -eq 0 ]; then
     plain_readable=0
     undet "go test exited 0 but printed no package result line — what it executed is unreadable"
+elif [ "$plain_cached" -gt 0 ]; then
+    undet "${plain_cached} package result(s) were replayed from the test cache (cached) — not a fresh execution"
 else
     pass "Unit tests pass (${plain_pass} test function(s) executed and passed)"
     grep -E '^(ok|\?)[[:space:]]' "$LOG_PLAIN"
@@ -329,7 +373,7 @@ fi
 # Test 9: No race conditions
 echo "Test: Race detector clean"
 run_suite "$LOG_RACE" -race
-race_rc=$R_RC; race_pass=$R_PASS; race_skip=$R_SKIP; race_fail=$R_FAIL; race_pkgs=$R_PKGS
+race_rc=$R_RC; race_pass=$R_PASS; race_skip=$R_SKIP; race_fail=$R_FAIL; race_pkgs=$R_PKGS; race_cached=$R_CACHED
 race_readable=1
 if [ "$race_rc" -ne 0 ] || [ "$race_fail" -gt 0 ]; then
     fail "Race conditions detected (${race_fail} failing test function(s), go test rc=${race_rc})"
@@ -337,6 +381,8 @@ if [ "$race_rc" -ne 0 ] || [ "$race_fail" -gt 0 ]; then
 elif [ "$race_pkgs" -eq 0 ]; then
     race_readable=0
     undet "go test -race exited 0 but printed no package result line — what it executed is unreadable"
+elif [ "$race_cached" -gt 0 ]; then
+    undet "${race_cached} -race package result(s) were replayed from the test cache (cached) — not a fresh execution"
 else
     pass "No race conditions detected (${race_pass} test function(s) executed under -race)"
 fi

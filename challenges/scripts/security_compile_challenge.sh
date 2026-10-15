@@ -20,7 +20,11 @@
 # a warning), so a build that compiled almost nothing used to read as a pass.
 # Adding packages needs no edit here; removing packages on purpose means
 # lowering COMPILE_FLOOR in the same commit. There is deliberately no
-# environment override that lowers it.
+# environment override that lowers it. The floor is a MINIMUM, not an exact
+# count, on purpose: what the gate must catch is a build that covered too
+# little; an exact count would turn every new package into an edit here
+# without catching anything more (a new package is built by go build ./...
+# and vetted either way).
 #
 # --prove-failure (§1.1 paired proof, VSC-371): copies this module (no .git)
 # into throw-away trees under $TMPDIR, plants a defect in each copy and runs
