@@ -1,0 +1,43 @@
+security - Source-Available License, All Rights Reserved
+
+Copyright (c) 2026 vasic-digital and Miloš Vasić (the "Owner"). All rights reserved.
+
+NOT AN OPEN-SOURCE LICENCE. This is NOT an OSI-approved open-source licence, it is
+NOT a free-software licence, and nothing in this repository is "open source". The
+source is published only so that it can be read, viewed and audited.
+
+1. Permission granted. You may view and read the source code in this repository, and
+   inspect it for the purpose of security review, audit, evaluation and education.
+
+2. Everything else is reserved. Without a separate WRITTEN licence signed or otherwise
+   expressly granted in writing by the Owner, you may NOT:
+   (a) copy, reproduce or redistribute the software or any part of it, in source or
+       binary form, beyond what is technically necessary to view it;
+   (b) modify it or create derivative works, including forks that are published,
+       distributed or used for any purpose other than private viewing;
+   (c) host, run as a service, deploy or make it available to third parties;
+   (d) use it, in whole or in part, for any commercial purpose, or in any product,
+       service or training dataset;
+   (e) remove or alter this licence or any copyright notice.
+   Creating a fork on a code-hosting platform solely as that platform's mechanism for
+   viewing or for submitting a contribution proposal under CONTRIBUTING.md is allowed.
+
+3. Contributions. Contributions are accepted only as described in CONTRIBUTING.md
+   and require prior written permission or a signed contributor licence agreement.
+
+4. Third-party components. This licence applies only to the Owner's own work. Third-party
+   components, including Go modules and git submodules, remain under their own licences,
+   listed in THIRD_PARTY_NOTICES.md. Nothing here restricts rights you hold under those
+   licences in those components.
+
+5. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR
+   PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+   OR ITS USE.
+
+6. Termination. Any breach of this licence terminates the permission in section 1
+   automatically.
+
+To request a licence, open an issue on the repository's GitHub page (no private data
+in the issue); the Owner will respond there.

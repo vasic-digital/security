@@ -344,3 +344,7 @@ The internal adapter at `internal/adapters/security/` bridges these generic type
 ## License
 
 Proprietary.
+
+## Licence
+
+Source-available, all rights reserved. See [LICENSE](LICENSE), [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Gate: `bash scripts/verify_licence.sh` (`--prove-failure` for its paired proof).
