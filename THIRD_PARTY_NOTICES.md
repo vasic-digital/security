@@ -35,11 +35,11 @@ under those licences.
 | `golang.org/x/crypto` | `v0.52.0` | direct | BSD-3-Clause | LICENSE |
 | `github.com/davecgh/go-spew` | `v1.1.2-0.20180830191138-d8f796af33cc` | indirect | ISC | LICENSE |
 | `github.com/kr/pretty` | `v0.3.1` | indirect | MIT | License (read manually) |
-| `github.com/pmezard/go-difflib` | `v1.0.1-0.20181226105442-5d4384ee4fb2` | indirect | BSD-2-Clause | LICENSE |
+| `github.com/pmezard/go-difflib` | `v1.0.1-0.20181226105442-5d4384ee4fb2` | indirect | BSD-3-Clause | LICENSE |
 | `github.com/rogpeppe/go-internal` | `v1.14.1` | indirect | BSD-3-Clause | LICENSE |
 | `golang.org/x/sys` | `v0.45.0` | indirect | BSD-3-Clause | LICENSE |
 | `gopkg.in/check.v1` | `v1.0.0-20201130134442-10cb98267c6c` | indirect | BSD-2-Clause | LICENSE |
-| `gopkg.in/yaml.v3` | `v3.0.1` | indirect | Apache-2.0 | LICENSE +NOTICE |
+| `gopkg.in/yaml.v3` | `v3.0.1` | indirect | MIT AND Apache-2.0 (MIT covers the files ported from libyaml; Apache-2.0 the rest) | LICENSE +NOTICE |
 
 ## Items that could not be verified
 
