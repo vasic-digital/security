@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Milos Vasic
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-Source-Available-All-Rights-Reserved
 
 // Package ssrf is the canonical Server-Side Request Forgery guard
 // for the digital.vasic.* ecosystem. It mirrors the
