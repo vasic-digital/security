@@ -13,6 +13,8 @@ check() { # $1 = repo dir
   grep -q 'Everything else is reserved' "$f" || { echo "FAIL: reservation clause absent"; return 1; }
   if grep -qiE 'Apache License|MIT License|Permission is hereby granted, free of charge' "$f"; then
     echo "FAIL: OSI licence text present"; return 1; fi
+  if [ -f "$1/README.md" ] && grep -qiE '^(MIT|Apache[- ]2(\.0)?|BSD[^ ]*)\.?$' "$1/README.md"; then
+    echo "FAIL: README states an OSI licence line"; return 1; fi
   echo "PASS: LICENSE present with all required markers"; return 0
 }
 if [ "${1:-}" = "--prove-failure" ]; then
@@ -24,6 +26,7 @@ if [ "${1:-}" = "--prove-failure" ]; then
   d="$(mktemp -d)"; sed 's/NOT AN OPEN-SOURCE LICENCE/Open source/' "$here/LICENSE" > "$d/LICENSE"; expect1 "open-source statement removed" "$d"
   d="$(mktemp -d)"; sed 's/Everything else is reserved/Everything is permitted/' "$here/LICENSE" > "$d/LICENSE"; expect1 "reservation clause removed" "$d"
   d="$(mktemp -d)"; { cat "$here/LICENSE"; echo "Apache License"; } > "$d/LICENSE"; expect1 "OSI text appended" "$d"
+  d="$(mktemp -d)"; cp "$here/LICENSE" "$d/LICENSE"; printf '## License\n\nMIT\n' > "$d/README.md"; expect1 "README claims MIT" "$d"
   check "$here" >/dev/null || { echo "control not green"; bad=1; }
   check "$here/no-such-dir" >/dev/null; [ $? -eq 2 ] || { echo "rc2 state not reported"; bad=1; }
   exit $bad

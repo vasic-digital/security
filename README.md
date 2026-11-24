@@ -341,10 +341,6 @@ The Security module is used throughout the consuming project:
 
 The internal adapter at `internal/adapters/security/` bridges these generic types to the consuming project's interfaces.
 
-## License
-
-Proprietary.
-
 ## Licence
 
 Source-available, all rights reserved. See [LICENSE](LICENSE), [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Gate: `bash scripts/verify_licence.sh` (`--prove-failure` for its paired proof).
