@@ -24,7 +24,7 @@ check() { # $1 = repo dir
   # repository's own LicenseRef contradicts LICENSE. Every hit is listed, not just the first few.
   local spdx n
   spdx="$(grep -rIniE --exclude-dir=.git --exclude=verify_licence.sh 'SPDX-License-Identifier[[:space:]]*:' "$1" 2>/dev/null \
-    | grep -vE 'SPDX-License-Identifier:[[:space:]]*LicenseRef-Source-Available-All-Rights-Reserved([[:space:]]|-->|\*/|$)')"
+    | grep -vE 'SPDX-License-Identifier:[[:space:]]*LicenseRef-Source-Available-All-Rights-Reserved[[:space:]]*(-->|\*/)?[[:space:]]*$')"
   if [ -n "$spdx" ]; then
     n="$(printf '%s\n' "$spdx" | wc -l)"
     echo "FAIL: $n conflicting SPDX identifier line(s):"; printf '%s\n' "$spdx" | sed 's/^/  /'; return 1; fi
@@ -52,6 +52,7 @@ if [ "${1:-}" = "--prove-failure" ]; then
   mk; for i in 1 2 3 4 5 6 7 8; do printf '// SPDX-License-Identifier: MIT\n' > "$d/g$i.go"; done
   out="$(check "$d")"; printf '%s\n' "$out" | grep -q '8 conflicting' && echo "caught: all 8 hits listed" || { echo "MISSED: hits truncated"; bad=1; }
   mk; printf '<!-- SPDX-License-Identifier: LicenseRef-Source-Available-All-Rights-Reserved -->\n' > "$d/h.md"; check "$d" >/dev/null || { echo "MISSED: own LicenseRef in HTML comment wrongly rejected"; bad=1; }
+  mk; printf '// SPDX-License-Identifier: LicenseRef-Source-Available-All-Rights-Reserved OR MIT\n' > "$d/i.go"; expect1 "compound expression with own LicenseRef" "$d"
   check "$here" >/dev/null || { echo "control not green"; bad=1; }
   check "$here/no-such-dir" >/dev/null; [ $? -eq 2 ] || { echo "rc2 state not reported"; bad=1; }
   exit $bad
