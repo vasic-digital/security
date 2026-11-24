@@ -23,8 +23,12 @@ check() { # $1 = repo dir
   # SPDX conflicts: any SPDX-License-Identifier (any case, optional space before the colon) other than the
   # repository's own LicenseRef contradicts LICENSE. Every hit is listed, not just the first few.
   local spdx n
+  # A hit is accepted only when the key occurs ONCE on the line and its value is exactly the own LicenseRef
+  # (optionally followed by a comment terminator); a second key on the same line is a conflict.
   spdx="$(grep -rIniE --exclude-dir=.git --exclude=verify_licence.sh 'SPDX-License-Identifier[[:space:]]*:' "$1" 2>/dev/null \
-    | grep -vE 'SPDX-License-Identifier:[[:space:]]*LicenseRef-Source-Available-All-Rights-Reserved[[:space:]]*(-->|\*/)?[[:space:]]*$')"
+    | awk '{ t=tolower($0); k="spdx-license-identifier"; n=0; u=t; while ((i=index(u,k))>0) { n++; u=substr(u,i+length(k)) }
+             i=index(t,k); rest=substr($0,i);
+             if (n==1 && rest ~ /^SPDX-License-Identifier:[ \t]*LicenseRef-Source-Available-All-Rights-Reserved[ \t]*(-->|\*\/)?[ \t]*$/) next; print }')"
   if [ -n "$spdx" ]; then
     n="$(printf '%s\n' "$spdx" | wc -l)"
     echo "FAIL: $n conflicting SPDX identifier line(s):"; printf '%s\n' "$spdx" | sed 's/^/  /'; return 1; fi
@@ -53,6 +57,7 @@ if [ "${1:-}" = "--prove-failure" ]; then
   out="$(check "$d")"; printf '%s\n' "$out" | grep -q '8 conflicting' && echo "caught: all 8 hits listed" || { echo "MISSED: hits truncated"; bad=1; }
   mk; printf '<!-- SPDX-License-Identifier: LicenseRef-Source-Available-All-Rights-Reserved -->\n' > "$d/h.md"; check "$d" >/dev/null || { echo "MISSED: own LicenseRef in HTML comment wrongly rejected"; bad=1; }
   mk; printf '// SPDX-License-Identifier: LicenseRef-Source-Available-All-Rights-Reserved OR MIT\n' > "$d/i.go"; expect1 "compound expression with own LicenseRef" "$d"
+  mk; printf '// SPDX-License-Identifier: MIT // SPDX-License-Identifier: LicenseRef-Source-Available-All-Rights-Reserved\n' > "$d/j.go"; expect1 "two SPDX keys on one line, own LicenseRef last" "$d"
   check "$here" >/dev/null || { echo "control not green"; bad=1; }
   check "$here/no-such-dir" >/dev/null; [ $? -eq 2 ] || { echo "rc2 state not reported"; bad=1; }
   exit $bad
